@@ -601,5 +601,6 @@
   "call_number": "Call Number",
   "more_information": "More Info",
   "manage_language": "Preferred Language",
-  "manage_appearance": "Appearance"
+  "manage_appearance": "Appearance",
+  "processing_checkout_message": "Processing checkout - you can scan your next item"
 }

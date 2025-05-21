@@ -97,7 +97,11 @@ export const MyCheckout = (props) => {
                               });
                          }
                     } else {
-                         await getTranslationsWithValues('checkout_access_online', checkout.checkoutSource, language, library.baseUrl).then((term) => {
+                         let source = checkout.checkoutSource;
+                         if (checkout.checkoutSource === 'Axis360') {
+                              source = 'Boundless';
+                         }
+                         await getTranslationsWithValues('checkout_access_online', source, language, library.baseUrl).then((term) => {
                               setAccessLabel(_.toString(term));
                          });
                     }

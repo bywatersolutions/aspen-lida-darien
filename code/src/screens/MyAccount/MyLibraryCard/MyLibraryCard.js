@@ -344,10 +344,10 @@ const CreateLibraryCard = (data) => {
                               </Text>
                          </Center>
                     </>
-               ) : null}
+               ) : null} 
                <Center>
                     {showExpirationDate && expirationDate && !neverExpires && numCards > 1 ? <Text color={cardText}>{expirationText}</Text> : null}
-                    {numCards > 1 ? <OpenBarcode barcodeValue={barcodeValue} barcodeFormat={barcodeStyle} handleBarcodeError={handleBarcodeError} language={language} /> : <Barcode value={barcodeValue} format={barcodeStyle} text={barcodeValue} background="warmGray.100" onError={handleBarcodeError} />}
+                    {numCards > 1 ? <OpenBarcode barcodeValue={barcodeValue} barcodeFormat={barcodeStyle} handleBarcodeError={handleBarcodeError} language={language} /> : <><Barcode value={barcodeValue} format={barcodeStyle} background="warmGray.100" onError={handleBarcodeError} /><Text style={{fontSize: 20, textAlign: 'center'}}>{barcodeValue}</Text></>}
                     {showExpirationDate && expirationDate && !neverExpires && numCards === 1 ? (
                          <Text color={cardText} fontSize={10} pt={2}>
                               {expirationText}
@@ -481,7 +481,8 @@ const OpenBarcode = (data) => {
                <Modal isOpen={showModal} onClose={() => toggleModal()} size="xl" _backdrop={{ opacity: 75 }}>
                     <Modal.Content bgColor="white">
                          <Modal.Body bgColor="white">
-                              <Barcode value={barcodeValue} format={barcodeFormat} text={barcodeValue} onError={handleBarcodeError} />
+							  <Barcode value={barcodeValue} format={barcodeFormat} onError={handleBarcodeError} />
+							  <Text style={{fontSize: 20, textAlign: 'center'}}>{barcodeValue}</Text>
                          </Modal.Body>
                     </Modal.Content>
                </Modal>

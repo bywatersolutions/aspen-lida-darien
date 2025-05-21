@@ -184,7 +184,13 @@ export const SelfCheckOut = () => {
                <Heading fontSize="md" pb={2}>
                     {getTermFromDictionary(language, 'checked_out_during_session')}
                </Heading>
-               {isProcessingCheckout ? loadingSpinner() : <FlatList data={items} keyExtractor={(item, index) => index.toString()} ListEmptyComponent={currentCheckOutEmpty()} ListHeaderComponent={currentCheckoutHeader()} renderItem={({ item }) => currentCheckOutItem(item)} />}
+               {isProcessingCheckout ? (
+                   <Center>
+                        <Text pb={5}>{getTermFromDictionary(language, 'processing_checkout_message')}</Text>
+                        {loadingSpinner()}
+                   </Center>
+               ) : <FlatList data={items} keyExtractor={(item, index) => index.toString()} ListEmptyComponent={currentCheckOutEmpty()} ListHeaderComponent={currentCheckoutHeader()} renderItem={({ item }) => currentCheckOutItem(item)} />
+               }
                <Center pt={5}>
                     <Button onPress={() => finishSession()} colorScheme="primary" size="sm">
                          {getTermFromDictionary(language, 'button_finish')}
