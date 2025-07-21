@@ -4,9 +4,47 @@ import { ListItem } from '@rneui/themed';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { Image } from 'expo-image';
 import _ from 'lodash';
-import { Actionsheet, Alert, AlertDialog, Box, Button, Center, CheckIcon, FlatList, Input, FormControl, HStack, Icon, Pressable, ScrollView, Select, Text, VStack } from 'native-base';
+import {
+     Actionsheet,
+     ActionsheetContent,
+     ActionsheetItem,
+     ActionsheetItemText,
+     Alert,
+     AlertDialog,
+     AlertDialogBackdrop,
+     AlertDialogContent,
+     AlertDialogHeader,
+     AlertDialogBody,
+     AlertDialogFooter,
+     Box,
+     Button,
+     ButtonGroup,
+     ButtonText,
+     Center,
+     Heading,
+     FlatList,
+     Input,
+     InputField,
+     FormControl,
+     HStack,
+     Icon,
+     Pressable,
+     ScrollView,
+     Select,
+     Text,
+     VStack,
+     ActionsheetBackdrop,
+     AlertIcon,
+     InfoIcon,
+     AlertText,
+     SelectTrigger,
+     SelectInput,
+     SelectIcon,
+     ChevronDownIcon,
+     SelectBackdrop, SelectDragIndicatorWrapper, SelectDragIndicator, SelectPortal, SelectContent, SelectItem
+} from '@gluestack-ui/themed';
 import React from 'react';
-import { Platform, SafeAreaView } from 'react-native';
+import { SafeAreaView } from 'react-native';
 import { loadError } from '../../../components/loadError';
 
 import { loadingSpinner } from '../../../components/loadingSpinner';
@@ -17,6 +55,7 @@ import { navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary, getTranslationsWithValues } from '../../../translations/TranslationService';
 import { deleteAllReadingHistory, deleteSelectedReadingHistory, fetchReadingHistory, optIntoReadingHistory, optOutOfReadingHistory } from '../../../util/api/user';
 import AddToList from '../../Search/AddToList';
+import { ActionsheetIcon } from '@gluestack-ui/themed';
 
 const blurhash = 'MHPZ}tt7*0WC5S-;ayWBofj[K5RjM{ofM_';
 
@@ -34,7 +73,7 @@ export const MyReadingHistory = () => {
      const pageSize = 20;
      const systemMessagesForScreen = [];
      const [paginationLabel, setPaginationLabel] = React.useState('Page 1 of 1');
-     const { textColor } = React.useContext(ThemeContext);
+     const { theme, textColor, colorMode } = React.useContext(ThemeContext);
 
      const [sortBy, setSortBy] = React.useState({
           title: 'Sort by Title',
@@ -200,18 +239,17 @@ export const MyReadingHistory = () => {
                                         width: '100%',
                                         padding: 0,
                                    }}>
-                                   <Alert status="info" colorScheme="info" w="100%" p={1}>
-                                        <HStack flexShrink={1} space={2} alignItems="center">
-                                             <Alert.Icon />
-                                             <Text fontSize="xs" bold color="coolGray.800">
-                                                  {getTermFromDictionary(language, 'reading_history_privacy_notice')}
-                                             </Text>
-                                        </HStack>
+                                   <Alert action="info" p="$1">
+                                        <AlertIcon as={InfoIcon} mr="$3" />
+                                        <AlertText fontSize="$xs">
+                                             {getTermFromDictionary(language, 'reading_history_privacy_notice')}
+                                        </AlertText>
                                    </Alert>
                               </ListItem.Content>
                          </>
                     }
                     isExpanded={expanded}
+                    icon={<Icon as={ChevronDownIcon} color={textColor} />}
                     onPress={() => {
                          setExpanded(!expanded);
                     }}>
@@ -223,7 +261,7 @@ export const MyReadingHistory = () => {
                               paddingTop: 1,
                          }}>
                          <ListItem.Content containerStyle={{ padding: 0 }}>
-                              <Text fontSize="xs" color="coolGray.600">
+                              <Text fontSize="$xs" color={textColor}>
                                    {getTermFromDictionary(language, 'reading_history_disclaimer')}
                               </Text>
                          </ListItem.Content>
@@ -245,83 +283,102 @@ export const MyReadingHistory = () => {
           }
           return (
                <Box
-                    safeArea={2}
-                    bgColor="coolGray.100"
-                    borderBottomWidth="1"
-                    _dark={{
-                         borderColor: 'gray.600',
-                         bg: 'coolGray.700',
-                    }}
-                    borderColor="coolGray.200"
+                    p="$5"
+                    bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                    borderBottomWidth="$1"
+                    borderColor={colorMode === 'light' ? theme['colors']['coolGray']['200'] : theme['colors']['gray']['600']}
                     flexWrap="nowrap">
-                    <VStack space={2}>
-                         <Input returnKeyType="search" variant="outline" autoCapitalize="none" onChangeText={(term) => setSearchTerm(term)} status="info" placeholder={getTermFromDictionary(language, 'search')} onSubmitEditing={search} value={searchTerm} size="lg" sx={{ color: textColor, borderColor: textColor, ':focus': { borderColor: textColor } }}/>
+                    <VStack space="sm">
+                         <Input>
+                              <InputField returnKeyType="search" variant="outline" autoCapitalize="none" onChangeText={(term) => setSearchTerm(term)} status="info" placeholder={getTermFromDictionary(language, 'search')} onSubmitEditing={search} value={searchTerm} size="lg" sx={{ color: textColor, borderColor: textColor, ':focus': { borderColor: textColor } }}/>
+                         </Input>
                          <ScrollView horizontal>
-                              <HStack space={2}>
+                              <HStack space="sm">
                                    <FormControl w={sortLength}>
                                         <Select
-                                            _dark={{
-                                                 borderWidth: '1',
-                                                 borderColor: 'gray.400',
-                                            }}
-                                            isReadOnly={Platform.OS === 'android'}
                                             name="sortBy"
                                             selectedValue={sort}
+                                            defaultValue={sort}
                                             accessibilityLabel={getTermFromDictionary(language, 'select_sort_method')}
-                                            _selectedItem={{
-                                                 bg: 'tertiary.300',
-                                                 endIcon: <CheckIcon size="5" />,
-                                            }}
                                             onValueChange={(itemValue) => updateSort(itemValue)}>
-                                             <Select.Item label={sortBy.title} value="title" key={0} />
-                                             <Select.Item label={sortBy.author} value="author" key={1} />
-                                             <Select.Item label={sortBy.last_used} value="checkedOut" key={2} />
-                                             <Select.Item label={sortBy.format} value="format" key={3} />
+                                             <SelectTrigger variant="outline" size="sm" borderWidth={colorMode === 'light' ? '$none' : '$1'}
+                                                            borderColor={colorMode === 'light' ? '$none' : theme['colors']['gray']['400']}>
+                                                  <SelectInput color={textColor} placeholder={getTermFromDictionary(language, 'select_sort_method')} />
+                                                  <SelectIcon mr="$3">
+                                                       <Icon color={textColor} as={ChevronDownIcon} />
+                                                  </SelectIcon>
+                                             </SelectTrigger>
+                                             <SelectPortal>
+                                                  <SelectBackdrop />
+                                                  <SelectContent>
+                                                       <SelectDragIndicatorWrapper>
+                                                            <SelectDragIndicator />
+                                                       </SelectDragIndicatorWrapper>
+                                                       <SelectItem label={sortBy.title} value="title" key={0} />
+                                                       <SelectItem label={sortBy.author} value="author" key={1} />
+                                                       <SelectItem label={sortBy.last_used} value="checkedOut" key={2} />
+                                                       <SelectItem label={sortBy.format} value="format" key={3} />
+                                                  </SelectContent>
+                                             </SelectPortal>
                                         </Select>
                                    </FormControl>
-                                   <Button.Group size="sm" variant="solid" colorScheme="danger">
-                                        <Button onPress={() => setDeleteAllIsOpen(true)}>{getTermFromDictionary(language, 'reading_history_delete_all')}</Button>
-                                        <Button onPress={() => setIsOpen(true)}>{getTermFromDictionary(language, 'reading_history_opt_out')}</Button>
-                                   </Button.Group>
+                                   <ButtonGroup size="sm" variant="solid">
+                                        <Button  bgColor={theme['colors']['danger']['700']} onPress={() => setDeleteAllIsOpen(true)}>
+                                             <ButtonText color={theme['colors']['white']}>{getTermFromDictionary(language, 'reading_history_delete_all')}</ButtonText>
+                                        </Button>
+                                        <Button bgColor={theme['colors']['danger']['700']} onPress={() => setIsOpen(true)}>
+                                             <ButtonText color={theme['colors']['white']}>{getTermFromDictionary(language, 'reading_history_opt_out')}</ButtonText>
+                                        </Button>
+                                   </ButtonGroup>
                               </HStack>
                          </ScrollView>
                     </VStack>
 
                     <Center>
                          <AlertDialog leastDestructiveRef={cancelRef} isOpen={isOpen} onClose={onClose}>
-                              <AlertDialog.Content>
-                                   <AlertDialog.Header>{getTermFromDictionary(language, 'reading_history_opt_out')}</AlertDialog.Header>
-                                   <AlertDialog.Body>{getTermFromDictionary(language, 'reading_history_opt_out_warning')}</AlertDialog.Body>
-                                   <AlertDialog.Footer>
-                                        <Button.Group space={3}>
-                                             <Button colorScheme="muted" variant="outline" onPress={onClose}>
-                                                  {getTermFromDictionary(language, 'cancel')}
+                              <AlertDialogBackdrop />
+                              <AlertDialogContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                                   <AlertDialogHeader>
+                                        <Heading size="md" color={textColor}>{getTermFromDictionary(language, 'reading_history_opt_out')}</Heading>
+                                   </AlertDialogHeader>
+                                   <AlertDialogBody>
+                                        <Text color={textColor}>{getTermFromDictionary(language, 'reading_history_opt_out_warning')}</Text>
+                                   </AlertDialogBody>
+                                   <AlertDialogFooter>
+                                        <ButtonGroup space="sm">
+                                             <Button borderColor={colorMode === 'light' ? theme['colors']['coolGray']['800'] : theme['colors']['coolGray']['400']} variant="outline" onPress={onClose}>
+                                                  <ButtonText color={colorMode === 'light' ? theme['colors']['coolGray']['800'] : theme['colors']['coolGray']['400']}>{getTermFromDictionary(language, 'cancel')}</ButtonText>
                                              </Button>
-                                             <Button isLoading={optingOut} isLoadingText={getTermFromDictionary(language, 'updating', true)} colorScheme="danger" onPress={optOut} ref={cancelRef}>
-                                                  {getTermFromDictionary(language, 'button_ok')}
+                                             <Button bgColor={theme['colors']['danger']['700']} isLoading={optingOut} isLoadingText={getTermFromDictionary(language, 'updating', true)} onPress={optOut} ref={cancelRef}>
+                                                  <ButtonText  color={theme['colors']['white']}>{getTermFromDictionary(language, 'button_ok')}</ButtonText>
                                              </Button>
-                                        </Button.Group>
-                                   </AlertDialog.Footer>
-                              </AlertDialog.Content>
+                                        </ButtonGroup>
+                                   </AlertDialogFooter>
+                              </AlertDialogContent>
                          </AlertDialog>
                     </Center>
 
                     <Center>
                          <AlertDialog leastDestructiveRef={deleteAllCancelRef} isOpen={deleteAllIsOpen} onClose={onCloseDeleteAll}>
-                              <AlertDialog.Content>
-                                   <AlertDialog.Header>{getTermFromDictionary(language, 'reading_history_delete_all')}</AlertDialog.Header>
-                                   <AlertDialog.Body>{getTermFromDictionary(language, 'reading_history_delete_all_warning')}</AlertDialog.Body>
-                                   <AlertDialog.Footer>
-                                        <Button.Group space={3}>
-                                             <Button colorScheme="muted" variant="outline" onPress={onCloseDeleteAll}>
-                                                  {getTermFromDictionary(language, 'cancel')}
+                              <AlertDialogBackdrop />
+                              <AlertDialogContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                                   <AlertDialogHeader>
+                                        <Heading color={textColor} size="md">{getTermFromDictionary(language, 'reading_history_delete_all')}</Heading>
+                                   </AlertDialogHeader>
+                                   <AlertDialogBody>
+                                        <Text color={textColor}>{getTermFromDictionary(language, 'reading_history_delete_all_warning')}</Text>
+                                   </AlertDialogBody>
+                                   <AlertDialogFooter>
+                                        <ButtonGroup space="sm">
+                                             <Button borderColor={colorMode === 'light' ? theme['colors']['coolGray']['800'] : theme['colors']['coolGray']['400']} variant="outline" onPress={onCloseDeleteAll}>
+                                                  <ButtonText color={colorMode === 'light' ? theme['colors']['coolGray']['800'] : theme['colors']['coolGray']['400']}>{getTermFromDictionary(language, 'cancel')}</ButtonText>
                                              </Button>
-                                             <Button isLoading={deleting} isLoadingText={getTermFromDictionary(language, 'deleting', true)} colorScheme="danger" onPress={deleteAll} ref={cancelRef}>
-                                                  {getTermFromDictionary(language, 'button_ok')}
+                                             <Button bgColor={theme['colors']['danger']['700']} isLoading={deleting} isLoadingText={getTermFromDictionary(language, 'deleting', true)} onPress={deleteAll} ref={cancelRef}>
+                                                  <ButtonText color={theme['colors']['white']}>{getTermFromDictionary(language, 'button_ok')}</ButtonText>
                                              </Button>
-                                        </Button.Group>
-                                   </AlertDialog.Footer>
-                              </AlertDialog.Content>
+                                        </ButtonGroup>
+                                   </AlertDialogFooter>
+                              </AlertDialogContent>
                          </AlertDialog>
                     </Center>
                </Box>
@@ -330,8 +387,8 @@ export const MyReadingHistory = () => {
 
      const Empty = () => {
           return (
-               <Center mt={5} mb={5}>
-                    <Text bold fontSize="lg">
+               <Center mt="$5" mb="$5">
+                    <Text bold fontSize="lg" color={textColor}>
                          {getTermFromDictionary(language, 'reading_history_empty')}
                     </Text>
                </Center>
@@ -342,22 +399,19 @@ export const MyReadingHistory = () => {
           if (data?.totalResults > 0) {
                return (
                     <Box
-                         safeArea={2}
-                         bgColor="coolGray.100"
-                         borderTopWidth="1"
-                         _dark={{
-                              borderColor: 'gray.600',
-                              bg: 'coolGray.700',
-                         }}
-                         borderColor="coolGray.200"
+                         p="$2"
+                         borderTopWidth="$1"
+                         bgColor={colorMode === 'light' ? theme['colors']['coolGray']['100'] : theme['colors']['coolGray']['700']}
+                         borderColor={colorMode === 'light' ? theme['colors']['coolGray']['400'] : theme['colors']['gray']['600']}
                          flexWrap="nowrap"
                          alignItems="center">
                          <ScrollView horizontal>
-                              <Button.Group size="sm">
-                                   <Button onPress={() => updatePage(page - 1)} isDisabled={page === 1}>
-                                        {getTermFromDictionary(language, 'previous')}
+                              <ButtonGroup size="sm">
+                                   <Button bgColor={theme['colors']['primary']['500']} onPress={() => updatePage(page - 1)} isDisabled={page === 1}>
+                                        <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'previous')}</ButtonText>
                                    </Button>
                                    <Button
+                                        bgColor={theme['colors']['primary']['500']}
                                         onPress={async () => {
                                              if (!isPreviousData && data?.hasMore) {
                                                   console.log('Adding to page');
@@ -380,11 +434,11 @@ export const MyReadingHistory = () => {
                                              }
                                         }}
                                         isDisabled={isPreviousData || !data?.hasMore}>
-                                        {getTermFromDictionary(language, 'next')}
+                                        <ButtonText color={theme['colors']['primary']['500-text']} >{getTermFromDictionary(language, 'next')}</ButtonText>
                                    </Button>
-                              </Button.Group>
+                              </ButtonGroup>
                          </ScrollView>
-                         <Text mt={2} fontSize="sm">
+                         <Text mt="$2" fontSize="sm" color={textColor}>
                               {paginationLabel}
                          </Text>
                     </Box>
@@ -408,9 +462,9 @@ export const MyReadingHistory = () => {
           <SafeAreaView style={{ flex: 1 }}>
                {_.size(systemMessagesForScreen) > 0 ? <Box safeArea={2}>{showSystemMessage()}</Box> : null}
                {user.trackReadingHistory !== '1' ? (
-                    <Box safeArea={5}>
+                    <Box p="$5">
                          <Button onPress={optIn} isLoading={optingIn} isLoadingText={getTermFromDictionary(language, 'updating', true)}>
-                              {getTermFromDictionary(language, 'reading_history_opt_in')}
+                              <ButtonText>{getTermFromDictionary(language, 'reading_history_opt_in')}</ButtonText>
                          </Button>
                          {getDisclaimer()}
                     </Box>
@@ -437,6 +491,7 @@ const Item = (data) => {
      const { user, updateUser } = React.useContext(UserContext);
      const { library } = React.useContext(LibrarySystemContext);
      const { language } = React.useContext(LanguageContext);
+     const { theme, textColor, colorMode } = React.useContext(ThemeContext);
      const item = data.data;
 
      const [deleting, setDelete] = React.useState(false);
@@ -470,8 +525,8 @@ const Item = (data) => {
      let url = library.baseUrl + '/bookcover.php?id=' + item.permanentId + '&size=medium';
      if (item.title) {
           return (
-               <Pressable onPress={toggle} borderBottomWidth="1" _dark={{ borderColor: 'gray.600' }} borderColor="coolGray.200" pl="4" pr="5" py="2">
-                    <HStack space={3}>
+               <Pressable onPress={toggle} borderBottomWidth="$1" borderColor={colorMode === 'light' ? theme['colors']['coolGray']['400'] : theme['colors']['gray']['600']} pl="$4" pr="$5" py="$2">
+                    <HStack space="md">
                          <VStack maxW="30%">
                               <Image
                                    alt={item.title}
@@ -495,28 +550,28 @@ const Item = (data) => {
                          </VStack>
                     </HStack>
                     <Actionsheet isOpen={isOpen} onClose={toggle} size="full">
-                         <Actionsheet.Content>
-                              <Box w="100%" h={60} px={4} justifyContent="center">
+                         <ActionsheetBackdrop />
+                         <ActionsheetContent>
+                              <Box w="100%" h="$60" px="$4" justifyContent="center">
                                    <Text
                                         fontSize="18"
-                                        color="gray.500"
-                                        _dark={{
-                                             color: 'gray.300',
-                                        }}>
+                                        color={textColor}>
                                         {getTitle(item.title)}
                                    </Text>
                               </Box>
                               {item.existsInCatalog ? (
-                                   <Actionsheet.Item
+                                   <ActionsheetItem
                                         onPress={() => {
                                              openGroupedWork(item.permanentId, item.title);
                                              toggle();
-                                        }}
-                                        startIcon={<Icon as={MaterialIcons} name="search" color="trueGray.400" mr="1" size="6" />}>
-                                        {getTermFromDictionary(language, 'view_item_details')}
-                                   </Actionsheet.Item>
+                                        }}>
+                                        <ActionsheetIcon>
+                                             <Icon as={MaterialIcons} name="search" mr="$1" size="md" />
+                                        </ActionsheetIcon>
+                                        <ActionsheetItemText>{getTermFromDictionary(language, 'view_item_details')}</ActionsheetItemText>
+                                   </ActionsheetItem>
                               ) : null}
-                              <Actionsheet.Item
+                              <ActionsheetItem
                                    isLoading={deleting}
                                    isLoadingText={getTermFromDictionary(language, 'removing', true)}
                                    onPress={async () => {
@@ -525,11 +580,15 @@ const Item = (data) => {
                                              setDelete(false);
                                         });
                                         toggle();
-                                   }}
-                                   startIcon={<Icon as={MaterialIcons} name="delete" color="trueGray.400" mr="1" size="6" />}>
-                                   {getTermFromDictionary(language, 'reading_history_delete')}
-                              </Actionsheet.Item>
-                         </Actionsheet.Content>
+                                   }}>
+                                   <ActionsheetIcon>
+                                        <Icon as={MaterialIcons} name="delete" mr="$1" size="md" />
+                                   </ActionsheetIcon>
+                                   <ActionsheetItemText>
+                                        {getTermFromDictionary(language, 'reading_history_delete')}
+                                   </ActionsheetItemText>
+                              </ActionsheetItem>
+                         </ActionsheetContent>
                     </Actionsheet>
                </Pressable>
           );
