@@ -396,3 +396,45 @@ export async function submitLocalIllRequest(url, request) {
           logWarnMessage(response);
      }
 }
+
+export async function submitLocalIllRequestEmail(url, request) {
+     const postBody = await postData();
+     let params = {
+        title: request.title ?? '',
+        author: request.author ?? '',
+        recordId: request.recordId,
+        volume: request.volume ?? '',
+        note: request.note ?? '',
+     }
+     const api = create({
+          baseURL: url + '/API',
+          timeout: GLOBALS.timeoutAverage,
+          headers: getHeaders(true),
+          auth: createAuthTokens(),
+          params: params,
+     });
+     //logDebugMessage("Submitting Local ILL Request Email " + url + "/API/UserAPI?method=submitLocalIllRequestEmail for recordId " + request.recordId);
+     //logDebugMessage(params)
+     const response = await api.post('/UserAPI?method=submitLocalIllRequestEmail', postBody);
+     if (response.ok) {
+          //logDebugMessage("Local ILL Response");
+          //logDebugMessage(response.data);
+          if (response.data.error) {
+               popAlert('Unexpected Error', response.data.error, 'error');
+               return response.data.result;
+          }else{
+               if (response.data.result?.success === true) {
+                    popAlert(response.data.result.api.title, response.data.result.api.message, 'success');
+                    return response.data.result;
+               } else {
+                    popAlert(response.data.api.title ?? 'Unknown Error', response.data.result.api.message, 'error');
+                    return response.data.result;
+               }
+          }
+     } else {
+          logWarnMessage("Did not get a good response submitting local ILL request email");
+          const problem = problemCodeMap(response.problem);
+          popAlert(problem.title, problem.message, 'error');
+          logWarnMessage(response);
+     }
+}

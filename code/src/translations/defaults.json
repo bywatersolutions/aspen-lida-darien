@@ -613,5 +613,6 @@
   "alternate_pickup_location_2": "Alternate Pickup Location 2",
   "bypass_pickup_location_prompt": "Bypass pickup location prompt when placing holds",
   "always_use_pickup_location": "Always use this pickup location",
-  "already_on_hold": "This title is already on hold for you. Are you sure you want to place a duplicate hold?"
+  "already_on_hold": "This title is already on hold for you. Are you sure you want to place a duplicate hold?",
+  "submit": "Submit"
 }

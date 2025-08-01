@@ -4,14 +4,40 @@ import { CheckOut } from './CheckOut/CheckOut';
 import { PlaceHold } from './Holds/PlaceHold';
 import { StartVDXRequest } from './Holds/VDXRequest';
 import { StartLocalIllRequest } from './Holds/LocalIllRequest';
+import { StartLocalIllRequestEmail } from './Holds/LocalIllRequestEmail';
 import { LoadOverDriveSample } from './LoadOverDriveSample';
 import { MoreInfo } from './MoreInfo';
 import { OnHoldForYou } from './OnHoldForYou';
 import { OpenSideLoad } from './OpenSideLoad';
+import {
+     Button,
+     ButtonText,
+     Center,
+     CloseIcon,
+     Heading,
+     Icon,
+     Modal,
+     ModalBackdrop,
+     ModalContent,
+     ModalBody,
+     ModalHeader,
+     ModalCloseButton,
+     Pressable,
+     Text,
+} from '@gluestack-ui/themed';
+import React, { useRef } from 'react';
+import { LibrarySystemContext, ThemeContext, UserContext } from '../../context/initialContext';
+import { passUserToDiscovery } from '../../util/apiAuth';
+import * as WebBrowser from 'expo-web-browser';
 
 import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from '../../util/logging.js';
 
 export const ActionButton = (data) => {
+     const {theme, textColor, backgroundColor, colorMode} = React.useContext(ThemeContext);
+     const { library } = React.useContext(LibrarySystemContext);
+     const { user } = React.useContext(UserContext);
+     const [showIllUnavailableModal, setShowIllUnavailableModal] = React.useState(false);
+
      const action = data.actions;
      const {
           volumeInfo,
@@ -148,6 +174,107 @@ export const ActionButton = (data) => {
                          holdConfirmationResponse={holdConfirmationResponse}
                          setHoldConfirmationResponse={setHoldConfirmationResponse}
                     />
+               );
+          } else if (action.type === 'local_ill_request_material_request') {
+               //logDebugMessage("Title has a local_ill_request_material_request action");
+               return (
+                    <Button
+                         size="md"
+                         bgColor={theme['colors']['primary']['500']}
+                         variant="solid"
+                         minWidth="100%"
+                         maxWidth="100%"
+                         onPress={async () =>
+                           await passUserToDiscovery(library.baseUrl, 'NewMaterialRequest', user.id, backgroundColor, textColor, null, action.redirectParams)
+                         }
+                    >
+                         <ButtonText color={theme['colors']['primary']['500-text']}>{action.title}</ButtonText>
+                    </Button>
+               );
+          } else if (action.type === 'local_ill_request_material_request_ils') {
+               //logDebugMessage("Title has a local_ill_request_material_request_ils action");
+               return (
+                    <Button
+                         size="md"
+                         bgColor={theme['colors']['primary']['500']}
+                         variant="solid"
+                         minWidth="100%"
+                         maxWidth="100%"
+                         onPress={async () =>
+                           await passUserToDiscovery(library.baseUrl, 'NewMaterialRequestIls', user.id, backgroundColor, textColor, null, action.redirectParams)
+                         }
+                    >
+                         <ButtonText color={theme['colors']['primary']['500-text']}>{action.title}</ButtonText>
+                    </Button>
+               );
+          } else if (action.type === 'local_ill_request_external_request') {
+               //logDebugMessage("Title has a local_ill_request_external_request action");
+               //logDebugMessage(action);
+               return (
+                    <Button
+                         size="md"
+                         bgColor={theme['colors']['primary']['500']}
+                         variant="solid"
+                         minWidth="100%"
+                         maxWidth="100%"
+                         onPress={async () =>
+                              {
+                                   const browserParams = {
+                                        enableDefaultShareMenuItem: false,
+                                        presentationStyle: 'automatic',
+                                        showTitle: false,
+                                        toolbarColor: backgroundColor,
+                                        controlsColor: textColor,
+                                        secondaryToolbarColor: backgroundColor,
+                                   };
+                                   await WebBrowser.openBrowserAsync(action.redirectParams.url, browserParams);
+                              }
+                         }
+                    >
+                         <ButtonText color={theme['colors']['primary']['500-text']}>{action.title}</ButtonText>
+                    </Button>
+               );
+          } else if (action.type === 'local_ill_request_email') {
+               //logDebugMessage("Title has a local_ill_request_email action");
+               //logDebugMessage(action);
+               return (
+                    <StartLocalIllRequestEmail
+                         title={action.title}
+                         workTitle={action.redirectParams.title}
+                         workAuthor={action.redirectParams.author}
+                         volumeName={action.redirectParams.volume}
+                         recordId={action.redirectParams.recordId}
+                    />
+               );
+          } else if (action.type === 'local_ill_request_unavailable') {
+               //logDebugMessage("Title has a local_ill_request_unavailable action");
+               //logDebugMessage(action);
+               return (
+                    <>
+                         <Button
+                              size="md"
+                              bgColor={theme['colors']['primary']['500']}
+                              variant="solid"
+                              minWidth="100%"
+                              maxWidth="100%"
+                              onPress={async () => {setShowIllUnavailableModal(true)}}
+                         >
+                              <ButtonText color={theme['colors']['primary']['500-text']}>{action.title}</ButtonText>
+                         </Button>
+                         <Modal isOpen={showIllUnavailableModal} size="lg" avoidKeyboard={true} onClose={() => setShowIllUnavailableModal(false)}>
+                              <ModalBackdrop />
+                              <ModalContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                                   <ModalHeader>
+                                        <Heading size="md" color={textColor}>{action.title}</Heading>
+                                        <ModalCloseButton hitSlop={{ top: 30, bottom: 30, left: 30, right: 30 }}>
+                                             <Icon as={CloseIcon} color={textColor} />
+                                        </ModalCloseButton>
+                                   </ModalHeader>
+
+                                   <ModalBody><Text color={textColor}>{action.message}</Text></ModalBody>
+                              </ModalContent>
+                         </Modal>
+                    </>
                );
           } else if (action.type === 'more_info_link') {
                return (

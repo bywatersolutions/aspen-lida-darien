@@ -7,6 +7,7 @@ import { LanguageContext } from '../../context/initialContext';
 import { EventScreen } from '../../screens/Event/Event';
 import { CreateVDXRequest } from '../../screens/GroupedWork/CreateVDXRequest';
 import { CreateLocalIllRequest } from '../../screens/GroupedWork/CreateLocalIllRequest';
+import { CreateLocalIllRequestEmail } from '../../screens/GroupedWork/CreateLocalIllRequestEmail';
 import { Editions } from '../../screens/GroupedWork/Editions';
 
 import { GroupedWorkScreen } from '../../screens/GroupedWork/GroupedWork';

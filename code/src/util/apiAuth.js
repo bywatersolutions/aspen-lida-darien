@@ -102,7 +102,7 @@ export function getHeaders(isPost = false, language = 'en') {
  * @param {string} textColor
  * @param id
  **/
-export async function passUserToDiscovery(url, redirectTo, userId, backgroundColor, textColor, id =  null) {
+export async function passUserToDiscovery(url, redirectTo, userId, backgroundColor, textColor, id =  null, additionalParams = null) {
      const postBody = await postData();
      const discovery = create({
           baseURL: url + '/API',
@@ -124,7 +124,12 @@ export async function passUserToDiscovery(url, redirectTo, userId, backgroundCol
           };
 
           if (sessionId && userId) {
-               const accessUrl = url + '/Authentication/LiDA?init&session=' + sessionId + '&user=' + userId + '&goTo=' + redirectTo + '&id=' + id + '&minimalInterface=true';
+               let accessUrl = url + '/Authentication/LiDA?init&session=' + sessionId + '&user=' + userId + '&goTo=' + redirectTo + '&id=' + id + '&minimalInterface=true';
+               for (const key in additionalParams) {
+                    if (Object.prototype.hasOwnProperty.call(additionalParams, key)) {
+                         accessUrl += "&" + key + "=" + encodeURI(additionalParams[key]);
+                    }
+               }
                await WebBrowser.openBrowserAsync(accessUrl, browserParams)
                     .then((res) => {
                          console.log(res);

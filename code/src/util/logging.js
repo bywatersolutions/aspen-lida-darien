@@ -47,8 +47,7 @@ export function logErrorMessage(message) {
 
 function logMessage(type, message) {
      if (typeof message === "object") {
-          console.log(type);
-          console.log(message);
+          console.log(type + " --> " + JSON.stringify(message));
      }else if (message === null) {
           console.log(type + " " + null);
      }else{

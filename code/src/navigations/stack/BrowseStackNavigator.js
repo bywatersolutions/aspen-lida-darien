@@ -12,6 +12,7 @@ import { DiscoverHomeScreen } from '../../screens/BrowseCategory/Home';
 import { EventScreen } from '../../screens/Event/Event';
 import { CreateVDXRequest } from '../../screens/GroupedWork/CreateVDXRequest';
 import { CreateLocalIllRequest } from '../../screens/GroupedWork/CreateLocalIllRequest';
+import { CreateLocalIllRequestEmail } from '../../screens/GroupedWork/CreateLocalIllRequestEmail';
 import { Editions } from '../../screens/GroupedWork/Editions';
 import { GroupedWorkScreen } from '../../screens/GroupedWork/GroupedWork';
 import { WhereIsIt } from '../../screens/GroupedWork/WhereIsIt';
@@ -98,6 +99,22 @@ const BrowseStackNavigator = () => {
                <Stack.Screen
                     name="CreateLocalIllRequest"
                     component={CreateLocalIllRequest}
+                    options={({ navigation }) => ({
+                         title: getTermFromDictionary(language, 'ill_request_title'),
+                         presentation: 'modal',
+                         headerLeft: () => {
+                              return <></>;
+                         },
+                         headerRight: () => (
+                              <Pressable onPress={() => navigation.goBack()} mr={3} hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+                                   <CloseIcon color="primary.baseContrast" size={5} />
+                              </Pressable>
+                         ),
+                    })}
+               />
+               <Stack.Screen
+                    name="CreateLocalIllRequestEmail"
+                    component={CreateLocalIllRequestEmail}
                     options={({ navigation }) => ({
                          title: getTermFromDictionary(language, 'ill_request_title'),
                          presentation: 'modal',
