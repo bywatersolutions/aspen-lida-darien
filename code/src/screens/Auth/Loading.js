@@ -111,6 +111,7 @@ export const LoadingScreen = () => {
                setProgress(progress + (100 / numSteps));
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading catalog status failed");
                setHasError(true);
           }
      });
@@ -128,6 +129,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading active language failed");
                setHasError(true);
           }
      });
@@ -142,6 +144,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading languages failed");
                setHasError(true);
           }
      });
@@ -175,6 +178,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading library system failed");
                setHasError(true);
           }
      });
@@ -185,9 +189,11 @@ export const LoadingScreen = () => {
                logInfoMessage('User Profile refreshed');
                logDebugMessage(data);
                if (isUndefined(data) || isEmpty(data)) {
+                    logWarnMessage("Setting Error to true because profile data was undefined or empty");
                     setHasError(true);
                } else {
                     if (data.success === false || data.success === 'false') {
+                         logWarnMessage("Setting Error to true because profile response returned a success of false");
                          setHasError(true);
                     } else {
                          setProgress(progress + (100 / numSteps));
@@ -202,6 +208,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading profile failed");
                setHasError(true);
           }
      });
@@ -216,6 +223,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading library links failed");
                setHasError(true);
           }
      });
@@ -231,6 +239,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading browse categories failed");
                setHasError(true);
           }
      });
@@ -247,6 +256,7 @@ export const LoadingScreen = () => {
                updateBrowseCategoryList(data);
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading browse category list failed");
                setHasError(true);
           }
      });
@@ -261,6 +271,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because library location failed");
                setHasError(true);
           }
      });
@@ -280,6 +291,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading self check settings failed");
                setHasError(true);
           }
 
@@ -297,6 +309,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading linked accounts failed");
                setHasError(true);
           }
      });
@@ -312,6 +325,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading system messages failed");
                setHasError(true);
           }
      });
@@ -327,6 +341,7 @@ export const LoadingScreen = () => {
                }
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading app preferences failed");
                setHasError(true);
           }
      });
@@ -340,6 +355,7 @@ export const LoadingScreen = () => {
                setIsReloading(false);
           },
           onError: () => {
+               logWarnMessage("Setting Error to true because loading notification history failed");
                setHasError(true);
           }
      });

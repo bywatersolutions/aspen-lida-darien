@@ -153,7 +153,8 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
                }
           });
      }catch (e) {
-          console.log("Error getting libraries with fetch");
+          popToast("Error", "Could not load valid libraries, please try again later.", 'error');
+          console.log("Error getting libraries with fetch " + url + '/API/GreenhouseAPI?method=' + method);
           console.log(e);
      }
 

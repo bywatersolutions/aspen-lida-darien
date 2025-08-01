@@ -793,10 +793,10 @@ export const GroupedWorkProvider = ({ children }) => {
 
           const keys = _.keys(data.formats);
           setFormat(_.first(keys));
-          logDebugMessage('updated format in GroupedWorkContext');
+          logDebugMessage('updated format in GroupedWorkContext:updateGroupedWork');
 
           setLanguage(data.language);
-          logDebugMessage('updated language in GroupedWorkContext');
+          logDebugMessage('updated language in GroupedWorkContext:updateGroupedWork');
      };
 
      const updateFormat = (data) => {
