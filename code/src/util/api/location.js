@@ -1,8 +1,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'apisauce';
-import { createAuthTokens, getHeaders } from '../apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders } from '../apiAuth';
 import { GLOBALS } from '../globals';
 import { LIBRARY } from '../loadLibrary';
+import { popToast } from '../../components/loadError';
+import { logDebugMessage, logErrorMessage } from '../logging';
 
 export async function getLocationInfo(url = null, locationId = null) {
      const apiUrl = url ?? LIBRARY.url;
@@ -11,7 +13,7 @@ export async function getLocationInfo(url = null, locationId = null) {
           try {
                locationId = await AsyncStorage.getItem('@locationId');
           } catch (e) {
-               console.log(e);
+               logDebugMessage(e);
           }
      }
 
@@ -30,8 +32,11 @@ export async function getLocationInfo(url = null, locationId = null) {
           if (response.data.result) {
                return response.data.result.location;
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 export async function getSelfCheckSettings(url = null) {
@@ -40,7 +45,7 @@ export async function getSelfCheckSettings(url = null) {
      try {
           locationId = await AsyncStorage.getItem('@locationId');
      } catch (e) {
-          console.log(e);
+          logDebugMessage(e);
      }
 
      const discovery = create({
@@ -62,6 +67,9 @@ export async function getSelfCheckSettings(url = null) {
                     settings: [],
                };
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return {
           success: false,
@@ -86,6 +94,9 @@ export async function getLocations(url, language = 'en', latitude, longitude) {
           if (response?.data?.result?.locations) {
                return response.data.result.locations;
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return [];
 }

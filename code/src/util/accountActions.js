@@ -6,9 +6,10 @@ import moment from 'moment';
 // custom components and helper files
 import { popAlert, popToast } from '../components/loadError';
 import { getTermFromDictionary } from '../translations/TranslationService';
-import { createAuthTokens, getHeaders, postData, problemCodeMap, stripHTML } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData, stripHTML } from './apiAuth';
 import { GLOBALS } from './globals';
 import { LIBRARY } from './loadLibrary';
+import { logDebugMessage, logErrorMessage } from './logging';
 
 /* ACTIONS ON CHECKOUTS */
 export async function renewCheckout(barcode, recordId, source, itemId, libraryUrl, userId) {
@@ -58,7 +59,9 @@ export async function renewCheckout(barcode, recordId, source, itemId, libraryUr
                }
           }
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -110,7 +113,9 @@ export async function confirmRenewCheckout(barcode, recordId, source, itemId, li
                }
           }
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -123,7 +128,6 @@ export async function renewAllCheckouts(url, language = 'en') {
           auth: createAuthTokens(),
      });
      const response = await api.post('/UserAPI?method=renewAll', postBody);
-     //console.log(response);
      if (response.ok) {
           const fetchedData = response.data;
           const result = fetchedData.result;
@@ -134,13 +138,13 @@ export async function renewAllCheckouts(url, language = 'en') {
 
           if (result.success === true) {
                popAlert(result.title, result.renewalMessage[0], 'success');
-               //await reloadCheckedOutItems();
           } else {
                popAlert(result.title, result.renewalMessage[0], 'error');
           }
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -156,7 +160,6 @@ export async function confirmRenewAllCheckouts(url, language = 'en') {
           auth: createAuthTokens(),
      });
      const response = await api.post('/UserAPI?method=renewAll', postBody);
-     //console.log(response);
      if (response.ok) {
           const fetchedData = response.data;
           const result = fetchedData.result;
@@ -167,13 +170,13 @@ export async function confirmRenewAllCheckouts(url, language = 'en') {
 
           if (result.success === true) {
                popAlert(result.title, result.renewalMessage[0], 'success');
-               //await reloadCheckedOutItems();
           } else {
                popAlert(result.title, result.renewalMessage[0], 'error');
           }
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -211,8 +214,9 @@ export async function returnCheckout(userId, id, source, overDriveId = null, url
                     popAlert(result.title, result.message, 'error');
                }
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-               console.log(response);
+               const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               popToast(error.title, error.message, 'error');
+               logErrorMessage(response);
           }
      } else {
           const api = create({
@@ -237,8 +241,9 @@ export async function returnCheckout(userId, id, source, overDriveId = null, url
                     popAlert(result.title, result.message, 'error');
                }
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-               console.log(response);
+               const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               popToast(error.title, error.message, 'error');
+               logErrorMessage(response);
           }
      }
 }
@@ -266,7 +271,7 @@ export async function viewOnlineItem(userId, id, source, accessOnlineUrl, url, l
 
                await WebBrowser.openBrowserAsync(result)
                     .then((res) => {
-                         console.log(res);
+                         logDebugMessage(res);
                     })
                     .catch(async (err) => {
                          if (err.message === 'Another WebBrowser is already being presented.') {
@@ -274,25 +279,27 @@ export async function viewOnlineItem(userId, id, source, accessOnlineUrl, url, l
                                    WebBrowser.dismissBrowser();
                                    await WebBrowser.openBrowserAsync(result)
                                         .then((response) => {
-                                             console.log(response);
+                                             logDebugMessage(response);
                                         })
                                         .catch(async (error) => {
                                              popToast(getTermFromDictionary(language, 'error_no_open_resource'), getTermFromDictionary(language, 'error_device_block_browser'), 'error');
                                         });
                               } catch (error) {
-                                   console.log('Really borked.');
+                                   logDebugMessage('Really borked.');
                               }
                          } else {
                               popToast(getTermFromDictionary(language, 'error_no_open_resource'), getTermFromDictionary(language, 'error_device_block_browser'), 'error');
                          }
                     });
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
+               const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               popToast(error.title, error.message, 'error');
+               logErrorMessage(response);
           }
      } else {
           await WebBrowser.openBrowserAsync(accessOnlineUrl)
                .then((res) => {
-                    console.log(res);
+                    logDebugMessage(res);
                })
                .catch(async (err) => {
                     if (err.message === 'Another WebBrowser is already being presented.') {
@@ -300,15 +307,15 @@ export async function viewOnlineItem(userId, id, source, accessOnlineUrl, url, l
                               WebBrowser.dismissBrowser();
                               await WebBrowser.openBrowserAsync(accessOnlineUrl)
                                    .then((response) => {
-                                        console.log(response);
+                                        logDebugMessage(response);
                                    })
                                    .catch((error) => {
-                                        console.log(error);
+                                        logErrorMessage(error);
                                         popToast(getTermFromDictionary(language, 'error_no_open_resource'), getTermFromDictionary(language, 'error_device_block_browser'), 'error');
                                    });
                          } catch (error) {
-                              console.log(error);
-                              console.log('Unable to open.');
+                              logErrorMessage(error);
+                              logErrorMessage('Unable to open.');
                          }
                     } else {
                          popToast(getTermFromDictionary(language, 'error_no_open_resource'), getTermFromDictionary(language, 'error_device_block_browser'), 'error');
@@ -340,7 +347,7 @@ export async function viewOverDriveItem(userId, formatId, overDriveId, url, lang
 
           await WebBrowser.openBrowserAsync(accessUrl)
                .then((res) => {
-                    console.log(res);
+                    logDebugMessage(res);
                })
                .catch(async (err) => {
                     if (err.message === 'Another WebBrowser is already being presented.') {
@@ -348,21 +355,24 @@ export async function viewOverDriveItem(userId, formatId, overDriveId, url, lang
                               WebBrowser.dismissBrowser();
                               await WebBrowser.openBrowserAsync(accessUrl)
                                    .then((response) => {
-                                        console.log(response);
+                                        logDebugMessage(response);
                                    })
                                    .catch(async (error) => {
-                                        console.log('Unable to close previous browser session.');
+                                        logErrorMessage('Unable to close previous browser session.');
+                                        logErrorMessage(error);
                                    });
                          } catch (error) {
-                              console.log('Really borked.');
+                              logErrorMessage('Really borked.');
+                              logErrorMessage(error);
                          }
                     } else {
                          popToast(getTermFromDictionary(language, 'error_no_open_resource'), getTermFromDictionary(language, 'error_device_block_browser'), 'error');
                     }
                });
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -399,24 +409,19 @@ export async function freezeHold(cancelId, recordId, source, url, patronId, sele
      });
      const response = await api.post('/UserAPI?method=freezeHold', postBody);
 
-     //console.log("freeze hold result");
-     //console.log(response);
-
      if (response.ok) {
-          //console.log(response);
           const fetchedData = response.data;
           const result = fetchedData.result;
 
           if (result.success === true) {
                popAlert(result.title ?? getTermFromDictionary(language, 'hold_frozen'), result.message, 'success');
-               // reload patron data in the background
-               //await reloadHolds(libraryUrl);
           } else {
                popAlert(result.title ?? getTermFromDictionary(language, 'unable_freeze_hold'), result.message, 'error');
           }
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -454,14 +459,10 @@ export async function freezeHolds(data, url, selectedReactivationDate = null, la
                     userId: hold.patronId,
                },
           });
-          //console.log("Freezing " + hold.recordId);
           const response = await api.post('/UserAPI?method=freezeHold', postBody);
           if (response.ok) {
                const fetchedData = response.data;
                const result = fetchedData.result;
-
-               //console.log("Freeze Hold for " + hold.recordId + " finished");
-               //console.log(result);
 
                if (result.success == true) {
                     numSuccess = numSuccess + 1;
@@ -469,18 +470,14 @@ export async function freezeHolds(data, url, selectedReactivationDate = null, la
                     numFailed = numFailed + 1;
                }
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-               console.log("Did not get a good response freezing hold " + hold.recordId);
-               console.log(response);
+               getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               logErrorMessage(response);
                numFailed = numFailed + 1;
           }
      });
 
      //Wait for all actions to finish
-     const results = await Promise.all(holdsToFreeze);
-
-     //await reloadHolds();
-     //console.log("Done freezing holds, numSuccess = " + numSuccess + " numFailed = " + numFailed);
+     await Promise.all(holdsToFreeze);
 
      let message = '';
      let status = 'success';
@@ -492,7 +489,7 @@ export async function freezeHolds(data, url, selectedReactivationDate = null, la
      if (numFailed > 0) {
           status = 'error';
           message = message.concat(' Unable to freeze ' + numFailed + ' holds.');
-          if (numSuccess == 0) {
+          if (numSuccess === 0) {
                title = getTermFromDictionary(language, 'unable_freeze_hold');
           }
      }
@@ -528,8 +525,9 @@ export async function thawHold(cancelId, recordId, source, url, patronId, langua
                popAlert(result.title ?? getTermFromDictionary(language, 'unable_thaw_hold'), result.message, 'error');
           }
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -539,7 +537,7 @@ export async function thawHolds(data, url, language = 'en') {
      let numSuccess = 0;
      let numFailed = 0;
 
-     const holdsToThaw = data.map(async (hold, index) => {
+     data.map(async (hold, index) => {
           const api = create({
                baseURL: url + '/API',
                timeout: GLOBALS.timeoutFast,
@@ -564,12 +562,11 @@ export async function thawHolds(data, url, language = 'en') {
                     numFailed = numFailed + 1;
                }
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-               console.log(response);
+               getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               logErrorMessage(response);
+               numFailed = numFailed + 1;
           }
      });
-
-     //await reloadHolds();
 
      let message = '';
      let status = 'success';
@@ -607,16 +604,14 @@ export async function cancelHold(cancelId, recordId, source, url, patronId, lang
 
           if (result.success === true) {
                popAlert(result.title, result.message, 'success');
-               // reload patron data in the background
-               //await reloadHolds();
           } else {
                popAlert(result.title, result.message, 'error');
           }
 
-          //await getProfile();
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -652,12 +647,11 @@ export async function cancelHolds(data, url, language = 'en') {
                     numFailed = numFailed + 1;
                }
           } else {
-               popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-               console.log(response);
+               getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               logErrorMessage(response);
+               numFailed = numFailed + 1;
           }
      });
-
-     //await reloadHolds();
 
      let message = '';
      let status = 'success';
@@ -690,24 +684,20 @@ export async function changeHoldPickUpLocation(holdId, newLocation, newSublocati
           params: params,
      });
      const response = await api.post('/UserAPI?method=changeHoldPickUpLocation', postBody);
-     //console.log("Changing hold pickup location");
-     //console.log(params);
 
      if (response.ok) {
           const fetchedData = response.data;
           const result = fetchedData.result;
 
           if (result.success === true) {
-               //console.log(result);
                popAlert(result.title, result.message, 'success');
-               // reload patron data in the background
-               //await reloadHolds();
           } else {
                popAlert(result.title, result.message, 'error');
           }
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -730,12 +720,11 @@ export async function updateOverDriveEmail(itemId, source, patronId, overdriveEm
 
      if (response.ok) {
           const responseData = response.data;
-          const result = responseData.result;
-          // reload patron data in the background
-          return result;
+          return responseData.result;
      } else {
-          popToast(getTermFromDictionary(language, 'error_no_server_connection'), getTermFromDictionary(language, 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -756,12 +745,12 @@ export async function cancelVdxRequest(libraryUrl, sourceId, cancelId, language 
           if (response.data.result.success === 'true') {
                popAlert(response.data.result.title, response.data.result.message, 'success');
           } else {
-               console.log(response);
+               logDebugMessage(response);
                popAlert(getTermFromDictionary(language, 'error'), response.data.result.message, 'error');
           }
      } else {
-          const problem = problemCodeMap(response.problem);
-          popAlert(problem.title, problem.message, 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }

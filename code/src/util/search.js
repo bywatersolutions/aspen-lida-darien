@@ -4,8 +4,7 @@ import _ from 'lodash';
 
 // custom components and helper files
 import { popToast } from '../components/loadError';
-import { getTermFromDictionary } from '../translations/TranslationService';
-import { createAuthTokens, ENDPOINT, getHeaders, getResponseCode, postData } from './apiAuth';
+import { createAuthTokens, ENDPOINT, getErrorMessage, getHeaders, getResponseCode, postData } from './apiAuth';
 import { GLOBALS } from './globals';
 import { LIBRARY } from './loadLibrary';
 import { PATRON } from './loadPatron';
@@ -60,8 +59,8 @@ export async function searchResults(searchTerm, pageSize = 100, page, libraryUrl
           SEARCH.term = response.data.result.lookfor;
           return response;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
-          logErrorMessage("Got an invalid response from getAppSearchResults");
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage(response);
           return response;
      }
@@ -81,6 +80,8 @@ export async function getDefaultFacets(url, limit = 5, language) {
           SEARCH.defaultFacets = response.data.result.data;
           return response.data.result;
      } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return response;
      }
 }
@@ -123,6 +124,9 @@ export async function getSearchResults(searchTerm, pageSize = 25, page, url, lan
                data: results.data.result,
           };
      } else {
+          const error = getErrorMessage({ statusCode: results.status, problem: results.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(results);
           return {
                success: results.success,
                data: [],
@@ -155,7 +159,9 @@ export async function getAppliedFilters(url, language) {
           buildParamsForUrl();
           return response.data.result.data;
      } else {
-          return response;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -176,7 +182,9 @@ export async function getSortList(url, language) {
           SEARCH.sortList = response.data.result;
           return response.data.result;
      } else {
-          return response;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -209,7 +217,9 @@ export async function getAvailableFacets(url, language) {
           SEARCH.defaultFacets = defaults;
           return response.data.result;
      } else {
-          return response;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -252,8 +262,8 @@ export async function searchAvailableFacets(facet, label, term, url, language) {
                }
           );
      } else {
-          logWarnMessage("Did not get a good response searching available facets");
-          logWarnMessage(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return {
           success: false,
@@ -291,94 +301,9 @@ export async function getAvailableFacetsKeys(url, language) {
           SEARCH.pendingFilters = map;
           return map;
      } else {
-          return response;
-     }
-}
-
-export async function getFacetCluster() {
-     return false;
-}
-
-export async function categorySearchResults(category, limit = 25, page, url, language) {
-     const postBody = await postData();
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutSlow,
-          headers: getHeaders(true),
-          params: {
-               limit,
-               id: category,
-               page,
-               language,
-          },
-          auth: createAuthTokens(),
-     });
-     const response = await api.post('/SearchAPI?method=getAppBrowseCategoryResults', postBody);
-     if (response.ok) {
-          return response;
-     } else {
-          logWarnMessage("Got an invalid response from getAppBrowseCategoryResults");
-          logWarnMessage(response);
-          return response;
-     }
-}
-
-export async function listofListSearchResults(searchId, limit = 25, page, url, language) {
-     const myArray = searchId.split('_');
-     const id = myArray[myArray.length - 1];
-
-     const postBody = await postData();
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutSlow,
-          headers: getHeaders(true),
-          params: {
-               limit,
-               id,
-               page,
-               language,
-          },
-          auth: createAuthTokens(),
-     });
-     const response = await api.post('/SearchAPI?method=getListResults', postBody);
-     if (response.ok) {
-          return response.data.result;
-     } else {
-          logWarnMessage("Got an invalid response from getListResults");
-          logWarnMessage(response);
-          return response;
-     }
-}
-
-export async function savedSearchResults(searchId, limit = 25, page, url, language) {
-     let id = searchId;
-     if (_.isString(searchId)) {
-          if (searchId.includes('system_saved_search')) {
-               const myArray = searchId.split('_');
-               id = myArray[3];
-          }
-     }
-
-     const postBody = await postData();
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutSlow,
-          headers: getHeaders(true),
-          params: {
-               limit,
-               id,
-               page,
-               language,
-          },
-          auth: createAuthTokens(),
-     });
-     const response = await api.post('/SearchAPI?method=getSavedSearchResults', postBody);
-     if (response.ok) {
-          return response;
-     } else {
-          logWarnMessage("Got an invalid response from getSavedSearchResults");
-          logWarnMessage(response);
-          return response;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -480,6 +405,9 @@ export async function getSearchSources(url, language = 'en') {
                SEARCH.validSources = response.data.result.sources;
                return response.data.result.sources;
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
 
      return {

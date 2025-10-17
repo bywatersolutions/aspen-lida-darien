@@ -6,90 +6,10 @@ import _ from 'lodash';
 
 // custom components and helper files
 import { popToast } from '../components/loadError';
-import { createAuthTokens, getHeaders, postData, problemCodeMap } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData, problemCodeMap } from './apiAuth';
 import { GLOBALS, LOGIN_DATA } from './globals';
 import { PATRON } from './loadPatron';
-
-export async function makeGreenhouseRequestNearby() {
-     // todo: check if aspen-lida to use greenhouseUrl, otherwise use discoveryUrl
-     let method = 'getLibraries';
-     let url = Constants.expoConfig.extra.greenhouseUrl;
-     let latitude,
-          longitude = 0;
-     if (GLOBALS.slug !== 'aspen-lida') {
-          method = 'getLibrary';
-          url = GLOBALS.url;
-          LOGIN_DATA.runGreenhouse = false;
-     }
-     if (_.isNull(PATRON.coords.lat) && _.isNull(PATRON.coords.long)) {
-          try {
-               latitude = await SecureStore.getItemAsync('latitude');
-               longitude = await SecureStore.getItemAsync('longitude');
-               PATRON.coords.lat = latitude;
-               PATRON.coords.long = longitude;
-          } catch (e) {
-               console.log(e);
-          }
-     }
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutSlow,
-          headers: getHeaders(),
-     });
-     const response = await api.get('/GreenhouseAPI?method=' + method, {
-          latitude: PATRON.coords.lat,
-          longitude: PATRON.coords.long,
-          release_channel: Updates.releaseChannel,
-     });
-     if (response.ok) {
-          const data = response.data;
-          let libraries;
-          if (GLOBALS.slug === 'aspen-lida') {
-               libraries = _.uniqBy(data.libraries, (v) => [v.locationId, v.libraryId].join());
-               libraries = _.uniqBy(libraries, (v) => [v.librarySystem, v.name].join());
-          } else {
-               libraries = _.uniqBy(data.library, (v) => [v.locationId, v.name].join());
-               libraries = _.values(libraries);
-               libraries = _.uniqBy(libraries, (v) => [v.libraryId, v.name].join());
-          }
-
-          //console.log(libraries);
-
-          if (data.count <= 1) {
-               LOGIN_DATA.showSelectLibrary = false;
-          }
-          LOGIN_DATA.nearbyLocations = libraries;
-          LOGIN_DATA.hasPendingChanges = true;
-          console.log('Greenhouse request completed.');
-          return true;
-     } else {
-          const problem = problemCodeMap(response.problem);
-          popToast(problem.title, problem.message, 'error');
-     }
-     return false;
-}
-
-export async function makeGreenhouseRequestAll() {
-     // todo: check if aspen-lida to use greenhouseUrl, otherwise use discoveryUrl
-     const api = create({
-          baseURL: Constants.expoConfig.extra.greenhouseUrl,
-          timeout: GLOBALS.timeoutSlow,
-          headers: getHeaders(),
-     });
-     const response = await api.get('/API/GreenhouseAPI?method=getLibraries', {
-          release_channel: Updates.releaseChannel,
-     });
-     if (response.ok) {
-          const data = response.data;
-          LOGIN_DATA.allLocations = _.uniqBy(data.libraries, (v) => [v.librarySystem, v.name].join());
-          LOGIN_DATA.hasPendingChanges = true;
-          console.log('Full greenhouse request completed.');
-          return true;
-     } else {
-          console.log(response);
-     }
-     return false;
-}
+import { logDebugMessage, logErrorMessage } from './logging';
 
 export async function checkCachedUrl(url) {
      const postBody = await postData();
@@ -118,6 +38,10 @@ export async function getLibrarySystem(data) {
           if (response.data.result) {
                return response.data.result.library;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 
      return [];
@@ -140,6 +64,10 @@ export async function getLibraryBranch(data) {
           if (response.data.result) {
                return response.data.result.location;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
      return [];
 }
@@ -164,6 +92,10 @@ export async function getUserProfile(data, user, pass) {
           if (response.data.result) {
                return response.data.result.profile;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
      return [];
 }
@@ -270,27 +202,10 @@ export async function getBrowseCategories(data, user, pass) {
                }
                return allCategories;
           }
-     }
-     return [];
-}
-
-export async function getLanguages(data) {
-     const api = create({
-          baseURL: data.patronsLibrary['baseUrl'] + '/API',
-          timeout: GLOBALS.timeoutFast,
-          headers: getHeaders(true),
-          auth: createAuthTokens(),
-     });
-     const response = await api.get('/SystemAPI?method=getLanguages');
-     if (response.ok) {
-          let languages = [];
-          if (response?.data?.result) {
-               console.log('Library languages saved at Login');
-               return _.sortBy(response.data.result.languages, 'id');
-          }
-          return languages;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
      return [];
 }

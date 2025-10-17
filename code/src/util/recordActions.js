@@ -4,7 +4,7 @@ import * as WebBrowser from 'expo-web-browser';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 // custom components and helper files
 import { popAlert, popToast } from '../components/loadError';
-import { createAuthTokens, getHeaders, postData, problemCodeMap } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData, problemCodeMap } from './apiAuth';
 import { GLOBALS } from './globals';
 import { getTermFromDictionary } from '../translations/TranslationService';
 
@@ -113,7 +113,8 @@ export async function checkoutItem(url, itemId, source, patronId, barcode = '', 
 
           return responseData.result;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage("No response from server while checking out item");
           logErrorMessage(response);
      }
@@ -218,7 +219,8 @@ export async function placeHold(url, itemId, source, patronId, pickupBranch, sub
           logDebugMessage(response.data.result);
           return response.data.result;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage("No server connection while placing hold");
           logErrorMessage(response);
      }
@@ -274,7 +276,8 @@ export async function overDriveSample(url, formatId, itemId, sampleNumber, langu
                     }
                });
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage("No server connection while getting OverDrive Preview");
           logErrorMessage(response);
      }
@@ -312,8 +315,7 @@ export async function openSideLoad(redirectUrl) {
                });
      } else {
           popToast(getTermFromDictionary('en', 'error_no_open_resource'), getTermFromDictionary('en', 'error_no_valid_url'), 'error');
-          logErrorMessage("No server connection while getting SideLoad to display");
-          logErrorMessage(response);
+          logErrorMessage("No redirect URL provided for side load");
      }
 }
 
@@ -333,7 +335,8 @@ export async function getItemDetails(url, id, format) {
      if (response.ok) {
           return response.data;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage("No server connection while getting Item Details");
           logErrorMessage(response);
      }
@@ -371,8 +374,8 @@ export async function submitVdxRequest(url, request) {
                return response.data;
           }
      } else {
-          const problem = problemCodeMap(response.problem);
-          popAlert(problem.title, problem.message, 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logErrorMessage("Error Submitting VDX Request");
           logErrorMessage(response);
      }
@@ -410,8 +413,8 @@ export async function submitLocalIllRequest(url, request) {
           }
      } else {
           logWarnMessage("Did not get a good response submitting local ILL request");
-          const problem = problemCodeMap(response.problem);
-          popAlert(problem.title, problem.message, 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logWarnMessage(response);
      }
 }
@@ -452,8 +455,8 @@ export async function submitLocalIllRequestEmail(url, request) {
           }
      } else {
           logWarnMessage("Did not get a good response submitting local ILL request email");
-          const problem = problemCodeMap(response.problem);
-          popAlert(problem.title, problem.message, 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
           logWarnMessage(response);
      }
 }

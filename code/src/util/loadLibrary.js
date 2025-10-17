@@ -6,7 +6,7 @@ import React from 'react';
 // custom components and helper files
 import { popToast } from '../components/loadError';
 import { getTermFromDictionary } from '../translations/TranslationService';
-import { createAuthTokens, getHeaders, postData } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData } from './apiAuth';
 import { GLOBALS } from './globals';
 import { PATRON } from './loadPatron';
 import { RemoveData } from './logout';
@@ -37,88 +37,6 @@ export const ALL_LOCATIONS = {
 export const ALL_BRANCHES = {};
 
 /**
- * Fetch branch/location information
- **/
-export async function getLocationInfo() {
-     let profile = [];
-     logInfoMessage("Loading location info for patron");
-
-     const api = create({
-          baseURL: LIBRARY.url + '/API',
-          timeout: GLOBALS.timeoutFast,
-          headers: getHeaders(),
-          auth: createAuthTokens(),
-     });
-     const response = await api.get('/SystemAPI?method=getLocationInfo', {
-          id: PATRON.location,
-          library: PATRON.scope,
-          version: GLOBALS.appVersion,
-     });
-     if (response.ok) {
-          if (response.data.result.success) {
-               if (typeof response.data.result.location !== 'undefined') {
-                    profile = response.data.result.location;
-                    if (typeof profile.vdxFormId !== 'undefined' && !_.isNull(profile.vdxFormId)) {
-                         try {
-                              if (_.isEmpty(LIBRARY.vdx)) {
-                                   await getVdxForm(LIBRARY.url, profile.vdxFormId);
-                              }
-                         } catch (e) {
-                              logErrorMessage(e);
-                         }
-                    }
-               } else {
-                    logWarnMessage('Location undefined.');
-               }
-               await AsyncStorage.setItem('@locationInfo', JSON.stringify(profile));
-               return profile;
-          }
-          return profile;
-     } else {
-          logWarnMessage('Unable to fetch location.');
-          logWarnMessage(response);
-          return profile;
-     }
-}
-
-/**
- * Fetch library information
- **/
-export async function getLibraryInfo(libraryId, libraryUrl, timeout) {
-     logDebugMessage("Loading library info for libraryId " + libraryId + " libraryUrl " + libraryUrl);
-     let profile = [];
-     try {
-          const api = create({
-               baseURL: libraryUrl + '/API',
-               timeout,
-               headers: getHeaders(),
-               auth: createAuthTokens(),
-          });
-          const response = await api.get('/SystemAPI?method=getLibraryInfo', {
-               id: libraryId,
-          });
-          if (response.ok) {
-               if (response.data.result.success) {
-                    if (typeof response.data.result.library !== 'undefined') {
-                         profile = response.data.result.library;
-                    }
-                    await AsyncStorage.setItem('@libraryInfo', JSON.stringify(profile));
-                    return profile;
-               }
-               return profile;
-          } else {
-               logWarnMessage('Unable to fetch library.');
-               logWarnMessage(response);
-               return profile;
-          }
-     } catch (err) {
-          logErrorMessage("Exception loading library");
-          logErrorMessage(err);
-          return profile;
-     }
-}
-
-/**
  * Fetch settings for app that are maintained by the library
  **/
 export async function getAppSettings(url, timeout, slug) {
@@ -143,34 +61,14 @@ export async function getAppSettings(url, timeout, slug) {
                }else{
                     logWarnMessage(response);
                }
-               popToast(getTermFromDictionary('en', 'error_no_server_connection'), "Could not retrieve valid App Settings, please try again later.", 'error');
+               const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+               popToast(error.title, error.message, 'error');
                return [];
           }
      }catch (err) {
           popToast(getTermFromDictionary('en', 'error_no_server_connection'), "Could not retrieve App Settings, please try again later.", 'error');
           logErrorMessage("Exception in getAppSettings " + err);
           return [];
-     }
-}
-
-export async function getLocationAppSettings(url, timeout, slug) {
-     const api = create({
-          baseURL: url + '/API',
-          timeout,
-          headers: getHeaders(),
-          auth: createAuthTokens(),
-     });
-     const response = await api.get('/SystemAPI?method=getLocationAppSettings', {
-          slug,
-     });
-     if (response.ok) {
-          const locationAppSettings = response.data.result.settings;
-          await AsyncStorage.setItem('@locationAppSettings', JSON.stringify(locationAppSettings));
-          LIBRARY.locationAppSettings = locationAppSettings;
-          console.log('Location app settings saved');
-          return response.data.result;
-     } else {
-          console.log(response);
      }
 }
 
@@ -209,19 +107,21 @@ export async function getPickupLocations(url = null, groupedWorkId = null, recor
           try {
                await AsyncStorage.setItem('@pickupLocations', JSON.stringify(locations));
           } catch (e) {
-               console.log(e);
+               logDebugMessage(e);
           }
 
           PATRON.pickupLocations = locations;
           result.locations = locations;
           return result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
 export async function getPickupSublocations(url = null) {
-     //console.log("In getPickupSublocations");
+     let sublocations = [];
      let baseUrl = url ?? LIBRARY.url;
      const postBody = await postData();
      const api = create({
@@ -233,12 +133,7 @@ export async function getPickupSublocations(url = null) {
      const response = await api.post('/UserAPI?method=getValidSublocations', postBody);
 
      if (response.ok) {
-          //console.log("getValidSublocations response");
-          //console.log(response.data);
           if (response.data.result.success) {
-               //console.log("All valid sublocations are");
-               //console.log(response.data);
-
                const data = response.data.result.sublocations;
 
                if (_.isObject(data) || _.isArray(data)) {
@@ -250,70 +145,17 @@ export async function getPickupSublocations(url = null) {
                PATRON.sublocations = sublocations;
                return sublocations;
           }else{
-               console.log("Call to get sublocations did not succeed");
-               console.log(response);
+               logErrorMessage("Call to get sublocations did not succeed");
+               logErrorMessage(response);
           }
      } else {
-          console.log("Call to get sublocations failed");
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
-     sublocations = [];
+
      PATRON.sublocations = sublocations;
      return sublocations;
-}
-
-/**
- * Fetch active browse categories for the branch/location
- **/
-export async function getBrowseCategories(libraryUrl, discoveryVersion, limit = null) {
-     //console.log("Getting Browse Categories");
-     if (libraryUrl) {
-          const postBody = await postData();
-          const api = create({
-               baseURL: libraryUrl + '/API',
-               timeout: GLOBALS.timeoutAverage,
-               headers: getHeaders(true),
-               auth: createAuthTokens(),
-               params: {
-                    maxCategories: limit,
-                    LiDARequest: true,
-               },
-          });
-          const hiddenCategories = [];
-          if (discoveryVersion < '22.07.00') {
-               const responseHiddenCategories = await api.post('/UserAPI?method=getHiddenBrowseCategories', postBody);
-               if (responseHiddenCategories.ok) {
-                    if (typeof responseHiddenCategories.data.result !== 'undefined') {
-                         const categories = responseHiddenCategories.data.result.categories;
-                         if (_.isArray(categories) === true) {
-                              if (categories.length > 0) {
-                                   categories.map(function (category, index, array) {
-                                        hiddenCategories.push({
-                                             key: category.id,
-                                             title: category.name,
-                                             isHidden: true,
-                                        });
-                                   });
-                              }
-                         }
-                    }
-               }
-          }
-          let response = '';
-          response = await api.post('/SearchAPI?method=getAppActiveBrowseCategories&includeSubCategories=true', postBody);
-          //console.log(response);
-          if (response.status === 403) {
-               await RemoveData(null, null).then((res) => {
-                    console.log('Session ended.');
-               });
-          }
-
-          if (response.data.result) {
-               return formatBrowseCategories(response.data.result);
-          }
-     }
-
-     return [];
 }
 
 export async function getVdxForm(url, id) {
@@ -330,8 +172,9 @@ export async function getVdxForm(url, id) {
           LIBRARY.vdx = response.data.result;
           return response.data.result;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -344,16 +187,14 @@ export async function getLocalIllForm(url, id) {
           auth: createAuthTokens(),
           params: { formId: id },
      });
-     console.log("Form ID " + id);
      const response = await api.post('/SystemAPI?method=getLocalIllForm', postBody);
-     console.log("Response for  getLocalIllForm");
-     console.log(response);
      if (response.ok) {
           LIBRARY.localIll = response.data.result;
           return response.data.result;
      } else {
-          popToast(getTermFromDictionary('en', 'error_no_server_connection'), getTermFromDictionary('en', 'error_no_library_connection'), 'error');
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -365,46 +206,9 @@ export function formatDiscoveryVersion(payload) {
                return result[0];
           }
      } catch (e) {
-          console.log(payload);
-          console.log(e);
+          logErrorMessage(e)
      }
      return payload;
-}
-
-export const UpdateBrowseCategoryContext = (maxCat = 6) => {
-     const [categories, setCategories] = React.useState();
-     React.useEffect(() => {
-          async function getUpdatedBrowseCategories() {
-               await updatePatronBrowseCategories(maxCat).then((result) => {
-                    setCategories(result);
-               });
-          }
-
-          getUpdatedBrowseCategories();
-     }, []);
-
-     return categories;
-};
-
-export async function updatePatronBrowseCategories(maxCat) {
-     const postBody = await postData();
-     const discovery = create({
-          baseURL: LIBRARY.url + '/API',
-          timeout: GLOBALS.timeoutAverage,
-          headers: getHeaders(true),
-          auth: createAuthTokens(),
-          params: {
-               maxCategories: maxCat,
-               LiDARequest: true,
-          },
-     });
-     const response = await discovery.post('/SearchAPI?method=getAppActiveBrowseCategories&includeSubCategories=true', postBody);
-     if (response.ok) {
-          if (response.data.result) {
-               return formatBrowseCategories(response.data.result);
-          }
-     }
-     return [];
 }
 
 export function formatBrowseCategories(payload) {
@@ -589,7 +393,9 @@ export async function reloadBrowseCategories(maxCat, url = null) {
                return formatBrowseCategories(response.data.result);
           }
      } else {
-          console.log(response.config);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
      return [];
 }

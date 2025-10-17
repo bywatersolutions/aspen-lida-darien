@@ -1,10 +1,11 @@
 import { create } from 'apisauce';
 import _ from 'lodash';
-import { popAlert } from '../../components/loadError';
+import { popAlert, popToast } from '../../components/loadError';
 import { getTermFromDictionary } from '../../translations/TranslationService';
-import { createAuthTokens, ENDPOINT, getHeaders, postData } from '../apiAuth';
+import { createAuthTokens, ENDPOINT, getErrorMessage, getHeaders, postData } from '../apiAuth';
 import { GLOBALS } from '../globals';
 import { PATRON } from '../loadPatron';
+import { logErrorMessage } from '../logging';
 
 const endpoint = ENDPOINT.list;
 
@@ -26,8 +27,10 @@ export async function getListDetails(id, url) {
      if (response.ok) {
           return response.data?.result ?? [];
      } else {
-          console.log(response);
-          return false;
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -54,7 +57,10 @@ export async function getLists(url) {
           PATRON.lists = lists;
           return lists;
      } else {
-          //console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -80,13 +86,15 @@ export async function createList(title, description, isPublic = false, url) {
      });
      const response = await discovery.post(`${endpoint.url}createList`, postBody);
      if (response.ok) {
-          console.log(response.config);
           if (response.data.result.listId) {
                PATRON.listLastUsed = response.data.result.listId;
           }
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
 }
 
@@ -125,7 +133,10 @@ export async function createListFromTitle(title, description, access, items, url
           }
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
 }
 
@@ -148,25 +159,9 @@ export async function editList(listId, title, description, access, url) {
           PATRON.listLastUsed = listId;
           return response.data;
      } else {
-          console.log(response);
-     }
-}
-
-export async function clearListTitles(listId, url) {
-     const postBody = await postData();
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutAverage,
-          headers: getHeaders(true),
-          auth: createAuthTokens(),
-          params: { listId },
-     });
-     const response = await api.post('/ListAPI?method=clearListTitles', postBody);
-     if (response.ok) {
-          PATRON.listLastUsed = listId;
-          return response.data;
-     } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -193,7 +188,9 @@ export async function addTitlesToList(id, itemId, url, source = 'GroupedWork', l
           }
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -232,7 +229,10 @@ export async function getListTitles(id, url, page, pageSize = 20, numTitles = 25
           totalPages = data.result?.page_total ?? 0;
           message = data.result?.message ?? null;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          message = error.message;
      }
 
      return {
@@ -264,7 +264,9 @@ export async function removeTitlesFromList(listId, title, url, source) {
           PATRON.listLastUsed = listId;
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -281,10 +283,11 @@ export async function deleteList(listId, url, optOutOfSoftDeletion = false) {
           },
      });
      const response = await api.post('/ListAPI?method=deleteList', postBody);
-     //console.log(response);
      if (response.ok) {
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }

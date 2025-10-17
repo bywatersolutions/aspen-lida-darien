@@ -1,12 +1,13 @@
 import {create} from 'apisauce';
 import i18n from 'i18n-js';
 import {includes, isUndefined, orderBy, size, sortBy, values} from 'lodash';
-import {popAlert} from '../../components/loadError';
-import {createAuthTokens, ENDPOINT, getHeaders, postData} from '../apiAuth';
+import { popAlert, popToast } from '../../components/loadError';
+import { createAuthTokens, ENDPOINT, getErrorMessage, getHeaders, postData } from '../apiAuth';
 import {GLOBALS} from '../globals';
 import {PATRON} from '../loadPatron';
 
 import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from '../logging.js';
+import { error } from 'expo-updates/build-cli/utils/log';
 
 const endpoint = ENDPOINT.user;
 
@@ -33,7 +34,6 @@ export async function refreshProfile(url) {
      const response = await discovery.post(`${endpoint.url}getPatronProfile`, postBody);
      if (response.ok) {
           if (response.data?.result) {
-               //console.log(response.data.result.profile);
                if (response.data?.result?.profile) {
                     return response.data.result.profile;
                } else {
@@ -43,7 +43,8 @@ export async function refreshProfile(url) {
                logWarnMessage("Refreshing profile failed, did not get a result");
           }
      }else{
-          logWarnMessage("Refreshing profile failed did not get an ok response");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return {
           success: false,
@@ -72,7 +73,6 @@ export async function reloadProfile(url) {
      const response = await discovery.post(`${endpoint.url}getPatronProfile`, postBody);
      if (response.ok) {
           if (response.data.result) {
-               //console.log(response.data.result.profile);
                if (response.data?.result?.profile) {
                     return response.data.result.profile;
                } else {
@@ -82,7 +82,8 @@ export async function reloadProfile(url) {
                logWarnMessage("Reloading profile failed, did not get a result");
           }
      }else{
-          logWarnMessage("Reloading profile failed");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return {
           success: false,
@@ -112,8 +113,8 @@ export async function loginToLiDA(username, password, url) {
           logInfoMessage(results.data);
           return results.data.result;
      }else{
-          logWarnMessage("Login to LiDA failed");
-          logWarnMessage(results);
+          getErrorMessage({ statusCode: results.status, problem: results.problem, sendToSentry: true });
+          logErrorMessage(results);
      }
 }
 
@@ -139,6 +140,8 @@ export async function validateUser(username, password, url) {
           return results.data.result;
      }else{
           logWarnMessage("Validating User failed");
+          getErrorMessage({ statusCode: results.status, problem: results.problem, sendToSentry: true });
+          logErrorMessage(results);
      }
 }
 
@@ -162,6 +165,8 @@ export async function validateSession(url) {
           }
      } else {
           logWarnMessage("Validating Session failed");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return [];
 }
@@ -188,6 +193,8 @@ export async function revalidateUser(url) {
           }
      } else {
           logWarnMessage("Revalidating user failed");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
      return false;
 }
@@ -206,7 +213,8 @@ export async function logoutUser(url) {
      if (response.ok) {
           return response.data;
      } else {
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return false;
      }
 }
@@ -231,7 +239,10 @@ export async function setSortPreferences(sortType, sortValue, language = 'en', u
           },
      });
      const response = await discovery.post('/UserAPI?method=updateSortPreferences', postBody);
-     console.log(response);
+     if (!response.ok) {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+     }
      return response;
 }
 
@@ -262,6 +273,9 @@ export async function updateAlternateLibraryCard(cardNumber = '', cardPassword =
      let data = [];
      if (response.ok) {
           data = response.data;
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
 
      return {
@@ -307,7 +321,8 @@ export async function updateHoldPickupPreferences(pickupLocationId = "", myLocat
                popAlert(response.data.result.title, response.data.result.message, response.data.result.success === true ? 'success' : 'error');
           }
      } else {
-          popAlert("Error", response.data.error, 'error');
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
 }
 
@@ -388,7 +403,8 @@ export async function getPatronHolds(readySort = 'expire', pendingSort = 'sortTi
                },
           ];
      } else {
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return {
                holds: [],
                holdsReady: [],
@@ -474,26 +490,22 @@ export async function getPatronCheckedOutItems(source = 'all', url, refresh = tr
      const response = await discovery.post('/UserAPI?method=getPatronCheckedOutItems', postBody);
      if (response.ok) {
           if (response.data?.result?.success) {
-               //console.log("Loaded checkouts successfully");
                let items = response.data.result.checkedOutItems ?? [];
-               //console.log("Found " + items.length + " checkouts");
                items = sortBy(items, ['daysUntilDue', 'title']);
                return items;
           }else{
                return [];
           }
      } else {
-          console.log("Loading checkouts failed");
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return [];
      }
 }
 
 export function sortCheckouts(checkouts, sort) {
      let sortedCheckouts = [];
-     if (__DEV__) {
-          console.log("Sorting checkouts by " + sort);
-     }
+     logDebugMessage("Sorting checkouts by " + sort);
 
      let sortMethod = sort;
      let order = 'asc';
@@ -540,69 +552,15 @@ export async function deleteAspenUser(url) {
                     message: 'Unknown error trying to complete request.'
                }
           }
+     } else {
+          getErrorMessage({ statusCode: results.status, problem: results.problem, sendToSentry: true });
+          logErrorMessage(results);
      }
 }
 
 /** *******************************************************************
  * Browse Category Management
  ******************************************************************* **/
-/**
- * Show a hidden browse category for a user
- * @param {string} categoryId
- * @param {string} patronId
- * @param {string} url
- * @param {string} language
- **/
-export async function showBrowseCategory(categoryId, patronId, url, language = 'en') {
-     const postBody = await postData();
-     const discovery = create({
-          baseURL: url,
-          timeout: GLOBALS.timeoutFast,
-          headers: getHeaders(endpoint.isPost),
-          auth: createAuthTokens(),
-          params: {
-               browseCategoryId: categoryId,
-               patronId: patronId,
-               language,
-          },
-     });
-     const response = await discovery.post(`${endpoint.url}showBrowseCategory`, postBody);
-     if (response.ok) {
-          return response.data;
-     } else {
-          console.log(response);
-          return false;
-     }
-}
-
-/**
- * Dismiss a browse category for a user
- * @param {string} categoryId
- * @param {string} patronId
- * @param {string} url
- * @param {string} language
- **/
-export async function hideBrowseCategory(categoryId, patronId, url, language = 'en') {
-     const postBody = await postData();
-     const discovery = create({
-          baseURL: url,
-          timeout: GLOBALS.timeoutFast,
-          headers: getHeaders(endpoint.isPost),
-          auth: createAuthTokens(),
-          params: {
-               browseCategoryId: categoryId,
-               patronId: patronId,
-               language,
-          },
-     });
-     const response = await discovery.post(`${endpoint.url}dismissBrowseCategory`, postBody);
-     if (response.ok) {
-          return response.data;
-     } else {
-          console.log(response);
-          return false;
-     }
-}
 
 /** *******************************************************************
  * Linked Accounts
@@ -683,8 +641,12 @@ export async function getLinkedAccounts(primaryUser, cards, barcodeStyle, url, l
                cards: cardStack ?? [],
           };
      } else {
-          console.log(response);
-          return false;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return {
+               accounts: [],
+               cards: [],
+          };
      }
 }
 
@@ -713,8 +675,9 @@ export async function getViewerAccounts(url, language = 'en') {
           }
           return values(viewers);
      } else {
-          console.log(response);
-          return false;
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
 }
 
@@ -749,13 +712,15 @@ export async function addLinkedAccount(username = '', password = '', url, langua
                     try {
                          popAlert(response.data.result.title, response.data.result.message, 'success');
                     } catch (e) {
-                         console.log(e);
+                         logDebugMessage(e);
                     }
                }
           }
           return status;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -789,13 +754,15 @@ export async function removeLinkedAccount(patronToRemove, url, language) {
                     try {
                          popAlert(response.data.result.title, response.data.result.message, 'success');
                     } catch (e) {
-                         console.log(e);
+                         logDebugMessage(e);
                     }
                }
           }
           return status;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -831,7 +798,9 @@ export async function removeViewerAccount(patronToRemove, url, language = 'en') 
           }
           return status;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -865,7 +834,8 @@ export async function disableAccountLinking(language, url) {
           }
           return status;
      } else {
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return false;
      }
 }
@@ -899,7 +869,9 @@ export async function enableAccountLinking(language, url) {
           }
           return status;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -927,11 +899,12 @@ export async function saveLanguage(code, url, language = 'en') {
      });
      const response = await discovery.post('/UserAPI?method=saveLanguage', postBody);
      if (response.ok) {
-          //i18n.locale = code;
           PATRON.language = code;
           return true;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -968,11 +941,19 @@ export async function fetchReadingHistory(page = 1, pageSize = 20, sort = 'check
 
      let data = [];
      let morePages = false;
+     let message = null;
      if (response.ok) {
           data = response.data;
           if (data.result?.page_current !== data.result?.page_total) {
                morePages = true;
           }
+          if(data.message) {
+               message = data.message;
+          }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          message = error.message;
      }
 
      return {
@@ -982,7 +963,7 @@ export async function fetchReadingHistory(page = 1, pageSize = 20, sort = 'check
           totalPages: data.result?.page_total ?? 0,
           hasMore: morePages,
           sort: data.result?.sort ?? 'checkedOut',
-          message: data.data?.message ?? null,
+          message: message,
      };
 }
 
@@ -1005,8 +986,12 @@ export async function optIntoReadingHistory(url, language = 'en') {
      const response = await discovery.post('/UserAPI?method=optIntoReadingHistory', postBody);
      if (response.ok) {
           return true;
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
-     return false;
 }
 
 /**
@@ -1029,8 +1014,12 @@ export async function optOutOfReadingHistory(url, language = 'en') {
      if (response.ok) {
           console.log(response.data);
           return true;
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
-     return false;
 }
 
 /**
@@ -1055,8 +1044,12 @@ export async function deleteAllReadingHistory(url, language = 'en') {
           if (response.data.result?.success) {
                return true;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
-     return false;
 }
 
 /**
@@ -1082,8 +1075,12 @@ export async function deleteSelectedReadingHistory(item, url, language = 'en') {
           if (response.data.result?.success) {
                return true;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return false;
      }
-     return false;
 }
 
 /** *******************************************************************
@@ -1110,6 +1107,9 @@ export async function fetchSavedSearches(url, language = 'en') {
 
      if (response.ok) {
           return response.data.result.searches;
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
 
      return {
@@ -1143,6 +1143,9 @@ export async function getSavedSearch(id, language = 'en', url) {
      if (response.ok) {
           return response.data?.result ?? [];
      } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return [];
      }
 }
@@ -1181,7 +1184,8 @@ export async function updateNotificationOnboardingStatus(status, token, url, lan
           }
           return false;
      } else {
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return false;
      }
 }
@@ -1200,8 +1204,10 @@ export async function getAppPreferencesForUser(url, language) {
      const response = await discovery.post('/UserAPI?method=getAppPreferencesForUser', postBody);
      if (response.ok) {
           return response.data.result;
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
-
      return {
           success: false,
           onboardAppNotifications: 0,
@@ -1243,12 +1249,20 @@ export async function fetchNotificationHistory(page = 1, pageSize = 20, forceUpd
 
      const response = await api.post('/UserAPI?method=getInbox', postBody);
      let data = [];
+     let message = null;
      let morePages = false;
      if (response.ok) {
           data = response.data.result;
           if (data.page_current !== data.page_total) {
                morePages = true;
           }
+          if(data.message) {
+               message = data.message;
+          }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          message = error.message;
      }
 
      return {
@@ -1257,7 +1271,7 @@ export async function fetchNotificationHistory(page = 1, pageSize = 20, forceUpd
           curPage: data.page_current ?? 0,
           totalPages: data.page_total ?? 0,
           hasMore: morePages,
-          message: data?.message ?? null,
+          message: message,
      };
 }
 
@@ -1281,14 +1295,28 @@ export async function markMessageAsRead(id, url, language = 'en') {
 
      const response = await api.post('/UserAPI?method=markMessageAsRead', postBody);
      let data = [];
+     let message = null;
+     let title = null;
      if (response.ok) {
           data = response.data;
+          if(data.message) {
+               message = data.message;
+          }
+          if(data.title) {
+               title = data.title;
+          }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          message = error.message;
+          title = error.title;
+          logErrorMessage(response);
      }
 
      return {
           success: data?.success ?? false,
-          title: data?.title ?? null,
-          message: data?.message ?? null,
+          title: title,
+          message: message,
      };
 }
 
@@ -1312,14 +1340,28 @@ export async function markMessageAsUnread(id, url, language = 'en') {
 
      const response = await api.post('/UserAPI?method=markMessageAsUnread', postBody);
      let data = [];
+     let message = null;
+     let title = null;
      if (response.ok) {
           data = response.data;
+          if(data.message) {
+               message = data.message;
+          }
+          if(data.title) {
+               title = data.title;
+          }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          message = error.message;
+          title = error.title;
      }
 
      return {
           success: data?.success ?? false,
-          title: data?.title ?? null,
-          message: data?.message ?? null,
+          title: title,
+          message: message,
      };
 }
 
@@ -1355,7 +1397,8 @@ export async function updateScreenBrightnessStatus(status, url, language = 'en')
           }
           return false;
      } else {
-          console.log(response);
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
           return false;
      }
 }
@@ -1393,14 +1436,20 @@ export async function fetchCampaigns(page = 1, pageSize = 20, filter = 'enrolled
      const response = await api.post('/UserAPI?method=getUserCampaigns', postBody);
      let data = [];
      let morePages = false;
+     let message = null;
 
      if (response.ok) {
           data = response.data;
           if (data.result?.page_current !== data.result?.page_total) {
                morePages = true;
           }
+          if(data.data?.message) {
+               message = data.data.message;
+          }
      } else {
-          console.error("ERROR fetching campaigns: ", response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          message = error.message;
      }
 
      return {
@@ -1409,7 +1458,7 @@ export async function fetchCampaigns(page = 1, pageSize = 20, filter = 'enrolled
          totalPages: data.result?.page_total ??0,
          hasMore: morePages,
          filter: data.result?.filter ?? 'enrolled',
-         message: data.data?.message ?? null,
+         message: message,
      }
 
 };
@@ -1444,11 +1493,13 @@ export async function enrollCampaign(campaignId, linkedUserId, filter = 'enrolle
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to enroll in campaign: ', data.message);
+               logDebugMessage('Failed to enroll in campaign: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }
@@ -1483,11 +1534,13 @@ export async function unenrollCampaign(campaignId, linkedUserId, filter = 'enrol
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to unenroll from campaign: ', data.message);
+               logDebugMessage('Failed to unenroll from campaign: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }
@@ -1526,12 +1579,13 @@ export async function optIntoCampaignEmails(campaignId, linkedUserId, filter = '
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to opt user into campaign emails: ', data.message);
-
+               logDebugMessage('Failed to opt user into campaign emails: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }
@@ -1566,11 +1620,13 @@ export async function optUserInToCampaignLeaderboard(campaignId, linkedUserId, f
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to enroll in campaign: ', data.message);
+               logDebugMessage('Failed to enroll in campaign leaderboard: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }
@@ -1605,11 +1661,13 @@ export async function optUserOutOfCampaignLeaderboard(campaignId, linkedUserId, 
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to enroll in campaign: ', data.message);
+               logDebugMessage('Failed to enroll in campaign leaderboard: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }
@@ -1648,11 +1706,13 @@ export async function addActivityProgress(activityId, linkedUserId, activityType
           if (data.result && data.result.success) {
                return true;
           } else {
-               console.error('Failed to add progress: ', data.message);
+               logDebugMessage('Failed to add progress: ', data.message);
                return false;
           }
      } else {
-          console.error(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      } 
 }

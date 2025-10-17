@@ -1,6 +1,8 @@
 import { create } from 'apisauce';
-import { createAuthTokens, getHeaders, postData } from '../apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData } from '../apiAuth';
 import { GLOBALS } from '../globals';
+import { popToast } from '../../components/loadError';
+import { logErrorMessage } from '../logging';
 
 /** *******************************************************************
  * General
@@ -36,6 +38,9 @@ export async function fetchSavedEvents(page = 1, pageSize = 25, filter = 'upcomi
           if (data.page_current !== data.page_total) {
                morePages = true;
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
      }
 
      return {
@@ -70,9 +75,14 @@ export async function getEventDetails(id, source, language, url) {
      });
      const response = await api.post('/EventAPI?method=getEventDetails', postBody);
 
-     return {
-          results: response.data,
-     };
+     if(response.ok) {
+          return response.data
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
+     }
 }
 
 /**
@@ -100,9 +110,11 @@ export async function saveEvent(id, language, url) {
                return response.data;
           }
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 /**
@@ -130,7 +142,9 @@ export async function removeSavedEvent(id, language, url) {
                return response.data;
           }
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }

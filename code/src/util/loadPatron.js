@@ -3,9 +3,11 @@ import { create } from 'apisauce';
 import _ from 'lodash';
 
 // custom components and helper files
-import { createAuthTokens, getHeaders, postData } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData } from './apiAuth';
 import { GLOBALS } from './globals';
 import { LIBRARY } from './loadLibrary';
+import { popToast } from '../components/loadError';
+import { logErrorMessage } from './logging';
 
 export const PATRON = {
      userToken: null,
@@ -67,6 +69,10 @@ export async function getILSMessages(url) {
                }
           }
           return messages;
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
 }
 
@@ -86,10 +92,7 @@ export async function reloadHolds(url) {
      });
      response = await api.post('/UserAPI?method=getPatronHolds', postBody);
      if (response.ok) {
-          //console.log(response.data);
           const allHolds = response.data.result.holds;
-          //console.log("Get Holds Response in loadPatron.js");
-          //console.log(response);
           let holds;
           let holdsReady = [];
           let holdsNotReady = [];
@@ -118,132 +121,14 @@ export async function reloadHolds(url) {
                }
           ]
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return {
                holds: [],
                holdsReady: [],
                holdsNotReady: [],
           };
-     }
-}
-
-export async function getPatronBrowseCategories(libraryUrl, patronId = null) {
-     if (!patronId) {
-          try {
-               patronId = await AsyncStorage.getItem('@patronProfile');
-          } catch (e) {
-               console.log(e);
-               patronId = null;
-          }
-     }
-
-     if (patronId) {
-          let browseCategories = [];
-          const postBody = await postData();
-          const api = create({
-               baseURL: libraryUrl + '/API',
-               timeout: GLOBALS.timeoutAverage,
-               headers: getHeaders(true),
-               auth: createAuthTokens(),
-          });
-          const responseHiddenCategories = await api.post('/UserAPI?method=getHiddenBrowseCategories', postBody);
-          if (responseHiddenCategories.ok) {
-               const hiddenCategories = [];
-
-               if (typeof responseHiddenCategories.data.result !== 'undefined') {
-                    const categories = responseHiddenCategories.data.result.categories;
-                    if (_.isArray(categories) === true) {
-                         if (categories.length > 0) {
-                              categories.map(function (category, index, array) {
-                                   hiddenCategories.push({
-                                        key: category.id,
-                                        title: category.name,
-                                        isHidden: true,
-                                   });
-                              });
-                         }
-                    }
-                    //console.log(hiddenCategories);
-               }
-               browseCategories = browseCategories.concat(hiddenCategories);
-          } else {
-               console.log(responseHiddenCategories);
-          }
-
-          const responseActiveCategories = await api.post('/SearchAPI?method=getAppActiveBrowseCategories&includeSubCategories=true', postBody);
-          if (responseActiveCategories.ok) {
-               const categories = responseActiveCategories.data.result;
-               const activeCategories = [];
-               categories.map(function (category, index, array) {
-                    const subCategories = category['subCategories'];
-                    if (typeof subCategories !== 'undefined' && subCategories.length !== 0) {
-                         subCategories.forEach((item) =>
-                              activeCategories.push({
-                                   key: item.key,
-                                   title: item.title,
-                              })
-                         );
-                    } else {
-                         activeCategories.push({
-                              key: category.key,
-                              title: category.title,
-                         });
-                         if (typeof subCategories != 'undefined') {
-                              if (subCategories.length !== 0) {
-                                   subCategories.forEach((item) =>
-                                        activeCategories.push({
-                                             key: item.key,
-                                             title: item.title,
-                                        })
-                                   );
-                              } else {
-                                   activeCategories.push({
-                                        key: category.key,
-                                        title: category.title,
-                                   });
-                              }
-                         }
-                    }
-               });
-               browseCategories = browseCategories.concat(activeCategories);
-          } else {
-               console.log(responseActiveCategories);
-          }
-          browseCategories = _.uniqBy(browseCategories, 'key');
-          browseCategories = _.sortBy(browseCategories, 'title');
-          await AsyncStorage.setItem('@patronBrowseCategories', JSON.stringify(browseCategories));
-          return browseCategories;
-     }
-}
-
-export async function getHiddenBrowseCategories(libraryUrl, patronId) {
-     const postBody = await postData();
-     const api = create({
-          baseURL: libraryUrl + '/API',
-          timeout: GLOBALS.timeoutAverage,
-          headers: getHeaders(true),
-          auth: createAuthTokens(),
-     });
-     const response = await api.post('/UserAPI?method=getHiddenBrowseCategories', postBody);
-     if (response.ok) {
-          const categories = response.data.result.categories;
-          const hiddenCategories = [];
-          if (_.isArray(categories) === true) {
-               if (categories.length > 0) {
-                    categories.map(function (category, index, array) {
-                         hiddenCategories.push({
-                              key: category.id,
-                              title: category.name,
-                              isHidden: true,
-                         });
-                    });
-               }
-          }
-
-          await AsyncStorage.setItem('@hiddenBrowseCategories', JSON.stringify(hiddenCategories));
-          return hiddenCategories;
-     } else {
-          console.log(response);
      }
 }
 
@@ -264,7 +149,9 @@ export async function getBrowseCategoryListForUser(url = null) {
      if (response.ok) {
           return _.sortBy(response.data.result, ['title']);
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }
@@ -283,7 +170,9 @@ export async function updateBrowseCategoryStatus(id, url = null) {
      if (response.ok) {
           return response.data.result;
      } else {
-          console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
           return false;
      }
 }

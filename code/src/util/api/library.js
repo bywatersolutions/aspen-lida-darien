@@ -1,43 +1,12 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'apisauce';
 import _ from 'lodash';
-import { createAuthTokens, getHeaders, postData, stripHTML } from '../apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, postData, stripHTML } from '../apiAuth';
 import { GLOBALS } from '../globals';
 import { LIBRARY } from '../loadLibrary';
 
 import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from '../logging.js';
-
-/**
- * Fetch library login labels
- **/
-export async function getLibraryLoginLabels(id, url) {
-     let usernameLabel = 'Your Name';
-     let passwordLabel = 'Library Card Number';
-
-     const api = create({
-          baseURL: url + '/API',
-          timeout: GLOBALS.timeoutFast,
-          headers: getHeaders(),
-          auth: createAuthTokens(),
-     });
-     const response = await api.get('/SystemAPI?method=getLibraryInfo', {
-          id,
-     });
-     if (response.ok) {
-          if (response.data.result.success) {
-               if (typeof response.data.result.library !== 'undefined') {
-                    const profile = response.data.result.library;
-                    usernameLabel = profile.usernameLabel;
-                    passwordLabel = profile.passwordLabel;
-               }
-          }
-     }
-
-     return {
-          username: usernameLabel,
-          password: passwordLabel,
-     };
-}
+import { popToast } from '../../components/loadError';
 
 export async function getLibraryInfo(url = null, id = null) {
      const apiUrl = url ?? LIBRARY.url;
@@ -75,9 +44,12 @@ export async function getLibraryInfo(url = null, id = null) {
           if (response.data.result) {
                return response.data.result.library;
           }
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return [];
      }
-
-     return [];
 }
 
 /**
@@ -97,9 +69,11 @@ export async function getLibraryLinks(url = null) {
           if (response?.data?.result?.items) {
                return response?.data?.result?.items;
           }
+     } else {
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-
-     return [];
 }
 
 /**
@@ -122,10 +96,11 @@ export async function getLibraryLanguages(url = null) {
           }
           return languages;
      } else {
-          logWarnMessage("Error loading library languages");
-          logWarnMessage(response);
+          logErrorMessage("Error loading library languages");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 /**
@@ -163,10 +138,11 @@ export async function getSystemMessages(libraryId = null, locationId = null, url
           }
           return messages;
      } else {
-          logWarnMessage("Error loading system messages");
-          logWarnMessage(response);
+          logErrorMessage("Error loading system messages");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 /**
@@ -191,10 +167,11 @@ export async function dismissSystemMessage(systemMessageId, url) {
                return response.data.result;
           }
      } else {
-          logWarnMessage("Error dismissing system message");
-          logWarnMessage(response);
+          logErrorMessage("Error dismissing system message");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 /**
@@ -222,8 +199,10 @@ export async function getCatalogStatus(url = null) {
                };
           }
      } else {
-          logWarnMessage("Error getting catalog status");
-          logWarnMessage(response);
+          logErrorMessage("Error getting catalog status");
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
      }
      return {
           status: 0,
@@ -253,10 +232,11 @@ export async function getSelfRegistrationForm(url = '') {
                return fields;
           }
      } else {
-          logWarnMessage("Error getting self registration form");
-          logWarnMessage(response);
+          logErrorMessage("Error getting self registration form");
+          getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          logErrorMessage(response);
+          return [];
      }
-     return [];
 }
 
 export async function submitSelfRegistration(url = '', data = []) {
@@ -274,10 +254,13 @@ export async function submitSelfRegistration(url = '', data = []) {
                return response.data.result;
           }
           return response.data;
-     }
-
-     return {
-          success: false,
-          message: 'Unable to connect to library'
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+          return {
+               success: false,
+               message: error.message ?? 'There was an error processing your registration. Please contact your library.',
+          }
      }
 }

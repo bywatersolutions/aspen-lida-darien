@@ -1,6 +1,8 @@
 import {create} from 'apisauce';
 import {GLOBALS} from '../globals';
-import {createAuthTokens, ENDPOINT, getHeaders, postData} from '../apiAuth';
+import { createAuthTokens, ENDPOINT, getErrorMessage, getHeaders, postData } from '../apiAuth';
+import { popToast } from '../../components/loadError';
+import { logErrorMessage } from '../logging';
 
 const endpoint = ENDPOINT.user;
 //const endpoint = ENDPOINT.work;
@@ -107,7 +109,10 @@ export async function confirmHold(recordId, confirmationId, language = 'en', url
 	if (response.ok) {
 		return response.data.result;
 	} else {
-		console.log(response);
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          logErrorMessage(response);
+
 		return {
 			success: false,
 			message: 'Unable to confirm hold. Please contact your library.'

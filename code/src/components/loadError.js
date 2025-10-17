@@ -1,11 +1,12 @@
 import React from 'react';
-import { Button, ButtonText, Center, Heading, HStack, Icon, Text, ButtonIcon } from '@gluestack-ui/themed';
+import { Button, ButtonText, Center, Heading, HStack, Icon, Text, ButtonIcon, AlertDialog, AlertDialogBackdrop, AlertDialogContent, AlertDialogHeader, AlertDialogBody, AlertDialogFooter, ButtonGroup } from '@gluestack-ui/themed';
 import { MaterialIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 
 // custom components and helper files
 import { getTermFromDictionary } from '../translations/TranslationService';
-import { ThemeContext } from '../context/initialContext';
+import { LanguageContext, LibrarySystemContext, ThemeContext } from '../context/initialContext';
+import { AuthContext } from './navigation';
 
 /**
  * Catch an error and display it to the user
@@ -41,23 +42,6 @@ export function loadError(error, reloadAction = '') {
                </Text>
           </Center>
      );
-}
-
-/**
- * Display a toast if Aspen LiDA is unable to connect to the server when fetching data
- **/
-export function badServerConnectionToast() {
-     const toast = useToast();
-     return toast.show({
-          title: getTermFromDictionary('en', 'error_no_server_connection'),
-          description: getTermFromDictionary('en', 'error_no_library_connection'),
-          status: 'error',
-          isClosable: true,
-          duration: 5000,
-          accessibilityAnnouncement: getTermFromDictionary('en', 'error_no_library_connection'),
-          zIndex: 9999,
-          placement: 'top',
-     });
 }
 
 /**
@@ -117,4 +101,36 @@ export function popAlert(title, description, status) {
           text1: title,
           text2: description,
      });
+}
+
+export const DisplayErrorAlertDialog = (title, message) => {
+     const { language } = React.useContext(LanguageContext);
+     const { theme, textColor, colorMode } = React.useContext(ThemeContext);
+     const [isOpen, setIsOpen] = React.useState(true);
+     const onClose = () => setIsOpen(false);
+     const cancelRef = React.useRef(null);
+
+     return (
+          <Center>
+               <AlertDialog leastDestructiveRef={cancelRef} isOpen={isOpen} onClose={onClose}>
+                    <AlertDialogBackdrop />
+
+                    <AlertDialogContent bgColor={colorMode === 'light' ? theme['colors']['warmGray']['50'] : theme['colors']['coolGray']['700']}>
+                         <AlertDialogHeader>
+                              <Heading color={textColor}>{title}</Heading>
+                         </AlertDialogHeader>
+                         <AlertDialogBody>
+                              <Text color={textColor}>{message}</Text>
+                         </AlertDialogBody>
+                         <AlertDialogFooter>
+                              <ButtonGroup space="md">
+                                   <Button onPress={onClose} bgColor={theme['colors']['primary']['500']} ref={cancelRef}>
+                                        <ButtonText color={theme['colors']['primary']['500-text']}>{getTermFromDictionary(language, 'close_window')}</ButtonText>
+                                   </Button>
+                              </ButtonGroup>
+                         </AlertDialogFooter>
+                    </AlertDialogContent>
+               </AlertDialog>
+          </Center>
+     );
 }

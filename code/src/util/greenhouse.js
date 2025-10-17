@@ -5,10 +5,11 @@ import _ from 'lodash';
 import { Platform } from 'react-native';
 
 import { popToast } from '../components/loadError';
-import { createAuthTokens, getHeaders, problemCodeMap } from './apiAuth';
+import { createAuthTokens, getErrorMessage, getHeaders, problemCodeMap } from './apiAuth';
 import { GLOBALS } from './globals';
 import { getAppSettings, LIBRARY } from './loadLibrary';
 import { PATRON } from './loadPatron';
+import { logDebugMessage, logErrorMessage } from './logging';
 
 /**
  * Fetch libraries to log into
@@ -44,8 +45,8 @@ export async function makeGreenhouseRequest(method, fetchAll = false) {
      if (response.ok) {
           return response.data;
      } else {
-          const problem = problemCodeMap(response.problem);
-          popToast(problem.title, problem.message, 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem });
+          popToast(error.title, error.message, 'error');
      }
 }
 
@@ -60,13 +61,12 @@ export async function updateAspenLiDABuild(updateId, updateChannel, updateDate) 
      const iOSDist = Constants.expoConfig.ios.buildNumber;
      const androidDist = Constants.expoConfig.android.versionCode;
      let patch = 0;
-     if (GLOBALS.appStage == ''){
-        patch = GLOBALS.appStage + " " + GLOBALS.appPatch;
-        patch = patch.trim();
-     }else{
-        patch = GLOBALS.appPatch;
+     if (GLOBALS.appStage === '') {
+          patch = GLOBALS.appStage + ' ' + GLOBALS.appPatch;
+          patch = patch.trim();
+     } else {
+          patch = GLOBALS.appPatch;
      }
-
 
      const api = create({
           baseURL: greenhouseUrl + 'API',
@@ -85,9 +85,8 @@ export async function updateAspenLiDABuild(updateId, updateChannel, updateDate) 
           },
      });
 
-     const response = await api.post('/GreenhouseAPI?method=updateAspenLiDABuild');
-     console.log(response);
-     return response;
+     return await api.post('/GreenhouseAPI?method=updateAspenLiDABuild');
+     // We don't care about the response
 }
 
 export async function fetchNearbyLibrariesFromGreenhouse() {
@@ -127,7 +126,7 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
                PATRON.coords.lat = latitude;
                PATRON.coords.long = longitude;
           } catch (e) {
-               console.log(e);
+               logDebugMessage(e)
           }
      }
      const api = create({
@@ -135,27 +134,25 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
           timeout: GLOBALS.timeoutSlow,
           headers: getHeaders(),
      });
-     //console.log("Calling " + url + '/API/GreenhouseAPI?method=' + method);
      let params = {
           latitude: PATRON.coords.lat,
           longitude: PATRON.coords.long,
           release_channel: channel,
      };
-     //console.log("Making call with fetch");
      try {
           const response1 = await fetch(url + '/API/GreenhouseAPI?method=' + method).then((response) => {
                if (response.status === 200) {
                     const json = response.json();
-                    console.log("Response from fetch");
-                    console.log(json);
+                    logErrorMessage("Response from fetch");
+                    logErrorMessage(json);
                } else {
-                    console.log("Something went wrong on API server!" + response.status);
+                    logErrorMessage("Something went wrong on API server!" + response.status);
                }
           });
      }catch (e) {
           popToast("Error", "Could not load valid libraries, please try again later.", 'error');
-          console.log("Error getting libraries with fetch " + url + '/API/GreenhouseAPI?method=' + method);
-          console.log(e);
+          logErrorMessage("Error getting libraries with fetch " + url + '/API/GreenhouseAPI?method=' + method);
+          logErrorMessage(e);
      }
 
      const response = await api.get('/GreenhouseAPI?method=' + method, params);
@@ -178,14 +175,14 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
 
           if (isBranded) {
                await getAppSettings(GLOBALS.url, GLOBALS.timeoutAverage, GLOBALS.slug);
-               console.log(LIBRARY.appSettings);
+               logDebugMessage(LIBRARY.appSettings);
                let autoPickUserHomeLocation = false;
 
                if (LIBRARY.appSettings.autoPickUserHomeLocation) {
                     autoPickUserHomeLocation = LIBRARY.appSettings.autoPickUserHomeLocation;
                }
 
-               console.log('autoPickUserHomeLocation: ' + autoPickUserHomeLocation);
+               logDebugMessage('autoPickUserHomeLocation: ' + autoPickUserHomeLocation);
                if (autoPickUserHomeLocation) {
                     showSelectLibrary = false;
                }
@@ -197,18 +194,14 @@ export async function fetchNearbyLibrariesFromGreenhouse() {
                shouldShowSelectLibrary: showSelectLibrary,
           };
      } else {
-          console.log("Fetching nearby libraries failed " + response.originalError);
-          //console.log("Status " + response.status);
-          console.log(response);
-          const problem = problemCodeMap(response.problem);
-          popToast(problem.title, problem.message, 'error');
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          return {
+               success: false,
+               shouldShowSelectLibrary: false,
+               libraries: [],
+          };
      }
-
-     return {
-          success: false,
-          shouldShowSelectLibrary: false,
-          libraries: [],
-     };
 }
 
 export async function fetchAllLibrariesFromGreenhouse() {
@@ -246,9 +239,12 @@ export async function fetchAllLibrariesFromGreenhouse() {
                success: true,
                libraries: libraries ?? [],
           };
+     } else {
+          const error = getErrorMessage({ statusCode: response.status, problem: response.problem, sendToSentry: true });
+          popToast(error.title, error.message, 'error');
+          return {
+               success: false,
+               libraries: [],
+          };
      }
-     return {
-          success: false,
-          libraries: [],
-     };
 }
