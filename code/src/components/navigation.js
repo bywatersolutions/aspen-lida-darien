@@ -8,7 +8,7 @@ import * as SecureStore from 'expo-secure-store';
 import * as Updates from 'expo-updates';
 import { Spinner, useColorModeValue, useContrastText, useToken } from 'native-base';
 import React from 'react';
-import { Platform } from 'react-native';
+import { AppState, Platform } from 'react-native';
 import { enableScreens } from 'react-native-screens';
 
 import * as Sentry from '@sentry/react-native';
@@ -31,7 +31,7 @@ import TitleWithLogo from '../components/TitleWithLogo'
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 import { logDebugMessage, logInfoMessage, logWarnMessage, logErrorMessage } from '../util/logging.js';
-
+import { trackAppLaunches, trackAppResume } from '../util/analytics';
 const prefix = Linking.createURL('/');
 logDebugMessage("Linking prefix is " + prefix);
 
@@ -208,6 +208,7 @@ export function App() {
                               if (result) {
                                    LIBRARY.url = libraryUrl;
                                    logDebugMessage('Connection successful. Continuing...');
+                                   await trackAppLaunches(libraryUrl);
                               } else {
                                    logWarnMessage('Connection failed, logging out.');
                                    userToken = null;
@@ -232,6 +233,27 @@ export function App() {
                });
           };
           bootstrapAsync();
+     }, []);
+
+     React.useEffect(() => {
+          const subscription = AppState.addEventListener('change', async (nextAppState) => {
+               if (nextAppState === 'active') {
+                    logDebugMessage('App resumed from background');
+                    
+                    try {
+                         const libraryUrl = await AsyncStorage.getItem('@pathUrl');
+                         if (libraryUrl) {
+                              await trackAppResume(libraryUrl);
+                         }
+                    } catch (error) {
+                         logErrorMessage('Failed to track app resume: ', error);
+                    }
+               }
+          });
+
+          return () => {
+               subscription.remove();
+          };
      }, []);
 
      const authContext = React.useMemo(

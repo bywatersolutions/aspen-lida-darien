@@ -66,6 +66,7 @@ export async function RemoveData(queryClient, updateUser) {
      PATRON.pickupLocations = [];
      PATRON.sublocations = [];
      PATRON.language = 'en';
+     PATRON.hideSoftDeleteListUI = false;
      PATRON.coords.lat = 0;
      PATRON.coords.long = 0;
      PATRON.linkedAccounts = [];

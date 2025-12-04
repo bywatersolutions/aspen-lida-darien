@@ -652,6 +652,7 @@
   "add_progress": "Add Progress",
   "delete_list": "Delete List?",
   "delete_list_confirmation": "Are you sure you want to delete this list? The list will be soft-deleted and can be restored within 30 days.",
+  "delete_list_confirmation_no_restore": "Are you sure you want to delete this list?",
   "opt_out_soft_deletion": "Opt Out of Soft Deletion",
   "rotate_device_for_barcode" : "Rotate your device to landscape mode to view the full barcode."
 }

@@ -8,6 +8,7 @@ import { LanguageContext, LibrarySystemContext, ThemeContext, UserContext } from
 import { navigate, navigateStack } from '../../../helpers/RootNavigator';
 import { getTermFromDictionary } from '../../../translations/TranslationService';
 import { deleteList, editList, getListDetails } from '../../../util/api/list';
+import { PATRON } from '../../../util/loadPatron';
 import {
      AlertDialog, AlertDialogContent, AlertDialogBody, AlertDialogFooter, Text,
      Button, ButtonText, ButtonGroup,
@@ -190,20 +191,27 @@ const DeleteList = (props) => {
                               </AlertDialogCloseButton>
                          </AlertDialogHeader>
                          <AlertDialogBody>
-                              <Text color={textColor}>{getTermFromDictionary(language, 'delete_list_confirmation')}</Text>
-                              <FormControl pt="$3">
-                                   <Checkbox
-                                        value="optOut"
-                                        isChecked={optOutOfSoftDeletion}
-                                        onChange={(isChecked) => setOptOutOfSoftDeletion(isChecked)}
-                                        alignItems="center"
-                                   >
-                                        <CheckboxIndicator mr="$2" borderColor={colorMode === 'light' ? theme['colors']['coolGray']['500'] : theme['colors']['gray']['300']}>
-                                             <CheckboxIcon as={CheckIcon} color={colorMode === 'light' ? theme['colors']['coolGray']['500'] : theme['colors']['gray']['300']} />
-                                        </CheckboxIndicator>
-                                        <CheckboxLabel color={textColor}>{getTermFromDictionary(language, 'opt_out_soft_deletion')}</CheckboxLabel>
-                                   </Checkbox>
-                              </FormControl>
+                              <Text color={textColor}>
+                                   {PATRON.hideSoftDeleteListUI
+                                        ? getTermFromDictionary(language, 'delete_list_confirmation_no_restore')
+                                        : getTermFromDictionary(language, 'delete_list_confirmation')
+                                   }
+                              </Text>
+                              {!PATRON.hideSoftDeleteListUI && (
+                                   <FormControl pt="$3">
+                                        <Checkbox
+                                             value="optOut"
+                                             isChecked={optOutOfSoftDeletion}
+                                             onChange={(isChecked) => setOptOutOfSoftDeletion(isChecked)}
+                                             alignItems="center"
+                                        >
+                                             <CheckboxIndicator mr="$2" borderColor={colorMode === 'light' ? theme['colors']['coolGray']['500'] : theme['colors']['gray']['300']}>
+                                                  <CheckboxIcon as={CheckIcon} color={colorMode === 'light' ? theme['colors']['coolGray']['500'] : theme['colors']['gray']['300']} />
+                                             </CheckboxIndicator>
+                                             <CheckboxLabel color={textColor}>{getTermFromDictionary(language, 'opt_out_soft_deletion')}</CheckboxLabel>
+                                        </Checkbox>
+                                   </FormControl>
+                              )}
                          </AlertDialogBody>
                          <AlertDialogFooter>
                               <ButtonGroup space="sm">

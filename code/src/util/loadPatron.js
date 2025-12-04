@@ -39,6 +39,7 @@ export const PATRON = {
      lists: [],
      browseCategories: [],
      sublocations: [],
+     hideSoftDeleteListUI: false,
 };
 
 export async function getILSMessages(url) {

@@ -408,6 +408,10 @@ export const UserProvider = ({ children }) => {
                     PATRON.num.holds = data.numHolds;
                }
 
+               if (_.isObject(data) && !_.isUndefined(data.hideSoftDeleteListUI)) {
+                    PATRON.hideSoftDeleteListUI = data.hideSoftDeleteListUI;
+               }
+
                setUser(data);
 
                if (_.isObject(data) && !_.isUndefined(data.holdSortUnavailable)) {
