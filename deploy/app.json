@@ -1,0 +1,15 @@
+{
+  "name": "Darien Library",
+  "slug": "darien",
+  "easId": "7febd1d7-ce80-418a-b187-2d2f54f7bcd8",
+  "reverseDns": "org.darienlibrary.catalog",
+  "discoveryUrl": "https://catalog.darienlibrary.org/",
+  "greenhouseUrl": "https://catalog.darienlibrary.org/",
+  "libraryId": "3",
+  "themeId": "2",
+  "background": "#ffffff",
+  "sentryProject": "aspen-lida-darien",
+  "sentryDsn": "https://d962342dfc5e4e6684271688c7522988@o994439.ingest.sentry.io/4504759358128128",
+  "ascAppId": "6447994728",
+  "logLevel": "0"
+}
